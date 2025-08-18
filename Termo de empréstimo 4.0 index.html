@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerador e Gestor de Empréstimos</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f7f9;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: auto;
+            background: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #1e3a8a;
+            text-align: center;
+            border-bottom: 2px solid #ccc;
+            padding-bottom: 10px;
+        }
+        form {
+            display: grid;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .form-section {
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 6px;
+            background-color: #f9f9f9;
+        }
+        .form-section h2 {
+            margin-top: 0;
+            color: #3b82f6;
+            font-size: 1.2em;
+        }
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 15px;
+        }
+        .input-group label {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .input-group input[type="text"],
+        .input-group input[type="date"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        #materials-list {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        #materials-list th, #materials-list td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        #materials-list th {
+            background-color: #e2e8f0;
+        }
+        #add-material-button {
+            margin-top: 10px;
+            background-color: #10b981;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        #add-material-button:hover {
+            background-color: #059669;
+        }
+        .remove-material-button {
+            background-color: #ef4444;
+            color: white;
+            border: none;
+            padding: 5px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .button-group button {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            border-radius: 4px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        #submit-button {
+            background-color: #3b82f6;
+            color: white;
+        }
+        #submit-button:hover {
+            background-color: #2563eb;
+        }
+
+        .records-section {
+            margin-top: 40px;
+        }
+        .records-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        #search-input {
+            padding: 10px;
+            font-size: 1em;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 300px;
+            box-sizing: border-box;
+        }
+        #clear-records-button {
+            background-color: #ef4444;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        #records-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        #records-table th, #records-table td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+        #records-table th {
+            background-color: #e2e8f0;
+        }
+        .status-nao-devolvido {
+            color: #ef4444;
+            font-weight: bold;
+        }
+        .status-atrasado {
+            color: #ef4444;
+            font-weight: bold;
+        }
+        .status-devolvido {
+            color: #10b981;
+            font-weight: bold;
+        }
+        
+        .print-area {
+            display: none;
+            margin-top: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            background-color: #fcfcfc;
+        }
+        .print-via {
+            border: 2px dashed #999;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .print-header h2 {
+            text-align: center;
+            font-size: 1.5em;
+            margin-bottom: 10px;
+        }
+        .print-header h3 {
+            text-align: center;
+            font-size: 1.2em;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #000;
+            padding-bottom: 5px;
+        }
+        .print-section p {
+            margin: 5px 0;
+            line-height: 1.5;
+        }
+        .print-list {
+            list-style: none;
+            padding: 0;
+            border: 1px solid #000;
+            margin-top: 10px;
+        }
+        .print-list li {
+            padding: 5px;
+            border-bottom: 1px dashed #ccc;
+        }
+        .print-list li:last-child {
+            border-bottom: none;
+        }
+        .print-signatures {
+            margin-top: 40px;
+            text-align: center;
+        }
+        .print-signatures .signature-line {
+            width: 80%;
+            margin: 0 auto 5px auto;
+            border-bottom: 1px solid #000;
+        }
+        .print-signatures p {
+            margin-bottom: 20px;
+        }
+        .print-button {
+            padding: 8px 12px;
+            background-color: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .print-return-button {
+            background-color: #10b981;
+        }
+        @media print {
+            body {
+                background-color: #fff;
+                padding: 0;
+            }
+            .container, #submit-button, #add-material-button, .remove-material-button, .records-section {
+                display: none;
+            }
+            .print-area {
+                display: block;
+                border: none;
+                padding: 0;
+                margin: 0;
+                box-shadow: none;
+            }
+            .print-via {
+                page-break-after: always;
+                border: none;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Gerador e Gestor de Termos de Empréstimo</h1>
+    <form id="loan-form">
+        <div class="form-section">
+            <h2>Dados do Empréstimo</h2>
+            <div class="input-group">
+                <label for="responsavel-emprestimo">Responsável pelo Empréstimo:</label>
+                <input type="text" id="responsavel-emprestimo" name="responsavel-emprestimo" required>
+            </div>
+            <div class="input-group">
+                <label for="cargo-emprestimo">Cargo/Função:</label>
+                <input type="text" id="cargo-emprestimo" name="cargo-emprestimo" required>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <h2>Dados da Instituição Recebedora</h2>
+            <div class="input-group">
+                <label for="instituicao-recebedora">Instituição:</label>
+                <input type="text" id="instituicao-recebedora" name="instituicao-recebedora" required>
+            </div>
+            <div class="input-group">
+                <label for="cnpj">CNPJ:</label>
+                <input type="text" id="cnpj" name="cnpj" required>
+            </div>
+            <div class="input-group">
+                <label for="endereco">Endereço:</label>
+                <input type="text" id="endereco" name="endereco" required>
+            </div>
+            <div class="input-group">
+                <label for="solicitante">Solicitante:</label>
+                <input type="text" id="solicitante" name="solicitante" required>
+            </div>
+            <div class="input-group">
+                <label for="cargo-solicitante">Cargo/Função:</label>
+                <input type="text" id="cargo-solicitante" name="cargo-solicitante" required>
+            </div>
+            <div class="input-group">
+                <label for="responsavel-recebimento">Responsável pelo Recebimento:</label>
+                <input type="text" id="responsavel-recebimento" name="responsavel-recebimento" required>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <h2>Materiais/Itens Emprestados</h2>
+            <table id="materials-list">
+                <thead>
+                    <tr>
+                        <th>Material/Item</th>
+                        <th>Quantidade</th>
+                        <th>Ação</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><input type="text" name="material" style="width: 100%; box-sizing: border-box;" required></td>
+                        <td><input type="text" name="quantidade" style="width: 100%; box-sizing: border-box;" required></td>
+                        <td><button type="button" class="remove-material-button">Remover</button></td>
+                    </tr>
+                </tbody>
+            </table>
+            <button type="button" id="add-material-button">Adicionar Material</button>
+        </div>
+
+        <div class="form-section">
+            <h2>Prazos</h2>
+            <div class="input-group">
+                <label for="data-transferencia">Data da Transferência:</label>
+                <input type="date" id="data-transferencia" name="data-transferencia" required>
+            </div>
+            <div class="input-group">
+                <label for="previsao-devolucao">Previsão de Devolução:</label>
+                <input type="date" id="previsao-devolucao" name="previsao-devolucao">
+            </div>
+            <div class="input-group">
+                <label for="data-assinatura">Data da Assinatura:</label>
+                <input type="date" id="data-assinatura" name="data-assinatura" required>
+            </div>
+        </div>
+
+        <button type="submit" id="submit-button">Salvar e Gerar Termo</button>
+    </form>
+
+    <div class="records-section">
+        <div class="records-header">
+            <h2>Registros de Empréstimos</h2>
+            <button id="clear-records-button">Reiniciar Registros</button>
+        </div>
+        <input type="text" id="search-input" placeholder="Buscar por Instituição...">
+        <table id="records-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Instituição</th>
+                    <th>Responsável</th>
+                    <th>Data de Transferência</th>
+                    <th>Previsão Devolução</th>
+                    <th>Status</th>
+                    <th>Devolvido?</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="print-area"></div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const form = document.getElementById('loan-form');
+        const materialsList = document.querySelector('#materials-list tbody');
+        const addMaterialBtn = document.getElementById('add-material-button');
+        const recordsTableBody = document.querySelector('#records-table tbody');
+        const searchInput = document.getElementById('search-input');
+        const clearRecordsBtn = document.getElementById('clear-records-button');
+        
+        let allRecords = [];
+
+        const loadRecords = () => {
+            const storedRecords = localStorage.getItem('loanRecords');
+            if (storedRecords) {
+                allRecords = JSON.parse(storedRecords);
+            }
+            renderRecords(allRecords);
+        };
+
+        const saveRecords = () => {
+            localStorage.setItem('loanRecords', JSON.stringify(allRecords));
+        };
+
+        const renderRecords = (records) => {
+            recordsTableBody.innerHTML = '';
+            records.forEach(record => {
+                const now = new Date();
+                const returnDate = record['previsao-devolucao'] ? new Date(record['previsao-devolucao']) : null;
+                const isOverdue = returnDate && returnDate < now && !record.devolvido;
+                const statusText = record.devolvido ? 'Devolvido' : (isOverdue ? 'Atrasado' : 'Não Devolvido');
+                const statusClass = record.devolvido ? 'status-devolvido' : (isOverdue ? 'status-atrasado' : 'status-nao-devolvido');
+
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${record.id}</td>
+                    <td>${record['instituicao-recebedora']}</td>
+                    <td>${record['responsavel-recebimento']}</td>
+                    <td>${formatDate(record['data-transferencia'])}</td>
+                    <td>${formatDate(record['previsao-devolucao']) || 'N/A'}</td>
+                    <td><span class="${statusClass}">${statusText}</span></td>
+                    <td>
+                        <input type="checkbox" data-id="${record.id}" ${record.devolvido ? 'checked' : ''}>
+                    </td>
+                    <td>
+                        <button class="print-button" onclick="printLoanTerm(${record.id})">Imprimir</button>
+                        ${record.devolvido ? `<button class="print-button print-return-button" onclick="printReturnTerm(${record.id})">Imprimir Termo de Devolução</button>` : ''}
+                    </td>
+                `;
+                recordsTableBody.appendChild(row);
+            });
+
+            recordsTableBody.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+                checkbox.addEventListener('change', (e) => {
+                    const recordId = parseInt(e.target.dataset.id);
+                    const record = allRecords.find(r => r.id === recordId);
+                    if (record) {
+                        record.devolvido = e.target.checked;
+                        record.data_devolucao = record.devolvido ? new Date().toISOString().slice(0, 10) : null;
+                        saveRecords();
+                        renderRecords(allRecords); 
+                    }
+                });
+            });
+        };
+
+        const addMaterialRow = () => {
+            const newRow = document.createElement('tr');
+            newRow.innerHTML = `
+                <td><input type="text" name="material" style="width: 100%; box-sizing: border-box;" required></td>
+                <td><input type="text" name="quantidade" style="width: 100%; box-sizing: border-box;" required></td>
+                <td><button type="button" class="remove-material-button">Remover</button></td>
+            `;
+            materialsList.appendChild(newRow);
+            newRow.querySelector('.remove-material-button').addEventListener('click', () => {
+                newRow.remove();
+            });
+        };
+
+        addMaterialBtn.addEventListener('click', addMaterialRow);
+
+        materialsList.addEventListener('click', (e) => {
+            if (e.target.classList.contains('remove-material-button')) {
+                e.target.closest('tr').remove();
+            }
+        });
+
+        const getFormData = () => {
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+
+            const materials = [];
+            document.querySelectorAll('#materials-list tbody tr').forEach(row => {
+                const material = row.querySelector('input[name="material"]').value;
+                const quantidade = row.querySelector('input[name="quantidade"]').value;
+                if (material && quantidade) {
+                    materials.push({ material, quantidade });
+                }
+            });
+            data.materials = materials;
+            return data;
+        };
+        
+        const resetFormAndAddInitialRow = () => {
+            form.reset();
+            materialsList.innerHTML = '';
+            addMaterialRow();
+        };
+
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            if (materialsList.rows.length === 0) {
+                alert("Por favor, adicione pelo menos um material.");
+                return;
+            }
+
+            if (!form.checkValidity()) {
+                alert("Por favor, preencha todos os campos obrigatórios.");
+                return;
+            }
+
+            const data = getFormData();
+            
+            const newRecord = {
+                id: allRecords.length > 0 ? Math.max(...allRecords.map(r => r.id)) + 1 : 1,
+                ...data,
+                devolvido: false,
+                data_devolucao: null
+            };
+            
+            allRecords.push(newRecord);
+            saveRecords();
+            renderRecords(allRecords);
+
+            resetFormAndAddInitialRow();
+            
+            generateLoanTerm(newRecord);
+        });
+
+        searchInput.addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            const filteredRecords = allRecords.filter(record => 
+                record['instituicao-recebedora'].toLowerCase().includes(searchTerm)
+            );
+            renderRecords(filteredRecords);
+        });
+        
+        clearRecordsBtn.addEventListener('click', () => {
+            if (confirm('Tem certeza que deseja apagar todos os registros de empréstimos? Esta ação é irreversível.')) {
+                localStorage.removeItem('loanRecords');
+                allRecords = [];
+                renderRecords([]);
+            }
+        });
+
+        const formatDate = (dateString) => {
+            if (!dateString) return '';
+            const [year, month, day] = dateString.split('-');
+            return `${day}/${month}/${year}`;
+        };
+
+        const formatMaterialsList = (materials) => {
+            if (materials.length === 0) return '';
+            let listHTML = '<ul class="print-list">';
+            materials.forEach(item => {
+                listHTML += `<li>${item.material}: ${item.quantidade}</li>`;
+            });
+            listHTML += '</ul>';
+            return listHTML;
+        };
+
+        const generateLoanTerm = (data) => {
+            const printArea = document.querySelector('.print-area');
+            printArea.innerHTML = '';
+            const documentContent = `
+                <div class="print-header">
+                    <h2>TERMO DE TRANSFERÊNCIA POR EMPRÉSTIMO DE MATERIAIS</h2>
+                    <h3>INSTITUTO DE DESENVOLVIMENTO, ENSINO E ASSISTÊNCIA À SAÚDE – IDEAS</h3>
+                </div>
+                <div class="print-section">
+                    <p><strong>Responsável pelo Empréstimo:</strong> ${data['responsavel-emprestimo']} &nbsp;&nbsp;&nbsp;&nbsp; <strong>Cargo/Função:</strong> ${data['cargo-emprestimo']}</p>
+                </div>
+                <div class="print-section">
+                    <h4>DADOS DA INSTITUIÇÃO RECEBEDORA</h4>
+                    <p><strong>Instituição:</strong> ${data['instituicao-recebedora']} &nbsp;&nbsp;&nbsp;&nbsp; <strong>CNPJ:</strong> ${data.cnpj} &nbsp;&nbsp;&nbsp;&nbsp; <strong>Endereço:</strong> ${data.endereco}</p>
+                    <p><strong>Solicitante:</strong> ${data.solicitante} &nbsp;&nbsp;&nbsp;&nbsp; <strong>Cargo/Função:</strong> ${data['cargo-solicitante']}</p>
+                    <p><strong>Responsável pelo Recebimento:</strong> ${data['responsavel-recebimento']}</p>
+                </div>
+                <div class="print-section">
+                    <h4>DESCRIÇÃO DOS MATERIAIS/ITENS EMPRESTADOS</h4>
+                    ${formatMaterialsList(data.materials)}
+                </div>
+                <div class="print-section">
+                    <h4>PRAZO DO EMPRÉSTIMO</h4>
+                    <p><strong>Data da Transferência:</strong> ${formatDate(data['data-transferencia'])}</p>
+                    <p><strong>Previsão de Devolução:</strong> ${formatDate(data['previsao-devolucao']) || 'Não definido'}</p>
+                </div>
+                <div class="print-section">
+                    <h4>TERMO DE RESPONSABILIDADE</h4>
+                    <p style="text-align: justify;">A instituição recebedora declara estar ciente de que os materiais emprestados são de propriedade do IDEAS e se compromete a devolvê-los nas mesmas condições em que foram recebidos, no prazo estipulado. Em caso de perda, extravio ou danos, será responsável pela reposição ou ressarcimento conforme avaliação do IDEAS.</p>
+                </div>
+                <div class="print-signatures">
+                    <h4>ASSINATURAS</h4>
+                    <p><strong>Responsável pelo IDEAS:</strong> ${data['responsavel-emprestimo']}</p>
+                    <div class="signature-line"></div>
+                    <p><strong>Responsável pelo Recebimento:</strong> ${data['responsavel-recebimento']}</p>
+                    <div class="signature-line"></div>
+                    <p><strong>Data:</strong> ${formatDate(data['data-assinatura'])}</p>
+                </div>
+            `;
+            const via1 = document.createElement('div');
+            via1.classList.add('print-via');
+            via1.innerHTML = `<h3>VIA 1: IDEAS</h3>${documentContent}`;
+            printArea.appendChild(via1);
+
+            const via2 = document.createElement('div');
+            via2.classList.add('print-via');
+            via2.innerHTML = `<h3>VIA 2: ${data['instituicao-recebedora'].toUpperCase()}</h3>${documentContent}`;
+            printArea.appendChild(via2);
+
+            window.print();
+        };
+
+        const generateReturnTerm = (data) => {
+            const printArea = document.querySelector('.print-area');
+            printArea.innerHTML = '';
+            const documentContent = `
+                <div class="print-header">
+                    <h2>TERMO DE RECEBIMENTO DE DEVOLUÇÃO DE MATERIAIS</h2>
+                    <h3>INSTITUTO DE DESENVOLVIMENTO, ENSINO E ASSISTÊNCIA À SAÚDE – IDEAS</h3>
+                </div>
+                <div class="print-section">
+                    <p>Este termo confirma que os materiais listados abaixo, emprestados para a instituição **${data['instituicao-recebedora']}** em **${formatDate(data['data-transferencia'])}**, foram devolvidos ao IDEAS.</p>
+                </div>
+                <div class="print-section">
+                    <h4>MATERIAIS DEVOLVIDOS</h4>
+                    ${formatMaterialsList(data.materials)}
+                </div>
+                <div class="print-section">
+                    <p><strong>Devolução realizada em:</strong> ${formatDate(data.data_devolucao)}</p>
+                </div>
+                <div class="print-section">
+                    <h4>TERMO DE RESPONSABILIDADE DE RECEBIMENTO</h4>
+                    <p style="text-align: justify;">O IDEAS atesta que recebeu os materiais acima listados e confirma que os mesmos foram devolvidos em condições satisfatórias, encerrando o termo de responsabilidade de empréstimo.</p>
+                </div>
+                <div class="print-signatures">
+                    <h4>ASSINATURAS</h4>
+                    <p><strong>Responsável pelo IDEAS (Recebimento):</strong> ${data['responsavel-emprestimo']}</p>
+                    <div class="signature-line"></div>
+                    <p><strong>Responsável pela Devolução (Instituição Recebedora):</strong> ${data['responsavel-recebimento']}</p>
+                    <div class="signature-line"></div>
+                    <p><strong>Data:</strong> ${formatDate(data.data_devolucao)}</p>
+                </div>
+            `;
+            const via1 = document.createElement('div');
+            via1.classList.add('print-via');
+            via1.innerHTML = `<h3>VIA 1: IDEAS</h3>${documentContent}`;
+            printArea.appendChild(via1);
+
+            const via2 = document.createElement('div');
+            via2.classList.add('print-via');
+            via2.innerHTML = `<h3>VIA 2: ${data['instituicao-recebedora'].toUpperCase()}</h3>${documentContent}`;
+            printArea.appendChild(via2);
+            
+            window.print();
+        };
+
+        window.printLoanTerm = (id) => {
+            const recordToPrint = allRecords.find(r => r.id === id);
+            if (recordToPrint) {
+                generateLoanTerm(recordToPrint);
+            }
+        };
+
+        window.printReturnTerm = (id) => {
+            const recordToPrint = allRecords.find(r => r.id === id);
+            if (recordToPrint) {
+                generateReturnTerm(recordToPrint);
+            }
+        };
+        
+        loadRecords();
+        if (materialsList.rows.length === 0) {
+            addMaterialRow();
+        }
+    });
+</script>
+
+</body>
+</html>

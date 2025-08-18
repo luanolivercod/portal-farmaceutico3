@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora de Diluição de Medicamentos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8;
+        }
+        /* Estilos específicos para impressão */
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #etiqueta-print-area, #etiqueta-print-area * {
+                visibility: visible;
+            }
+            #etiqueta-print-area {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                padding: 10mm;
+                box-sizing: border-box;
+                border: none;
+                box-shadow: none;
+                font-family: 'Inter', sans-serif;
+                font-size: 10pt;
+            }
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
+
+    <div class="bg-white p-8 rounded-2xl shadow-xl max-w-xl w-full transform transition-all duration-300 hover:shadow-2xl">
+        
+        <h2 class="text-3xl font-bold text-center text-gray-800 mb-6">Calculadora de Diluição</h2>
+        
+        <div class="mb-6 border-b pb-4">
+            <h3 class="text-xl font-semibold text-gray-700 mb-4">Banco de Dados de Medicamentos</h3>
+            <div class="flex items-center space-x-4">
+                <input type="file" id="uploadPlanilha" class="flex-1 text-sm text-gray-500
+                    file:mr-4 file:py-2 file:px-4
+                    file:rounded-full file:border-0
+                    file:text-sm file:font-semibold
+                    file:bg-blue-50 file:text-blue-700
+                    hover:file:bg-blue-100" accept=".xlsx, .xls">
+            </div>
+            <div id="mensagemPlanilha" class="mt-2 text-sm text-center font-semibold">Carregue um arquivo .xlsx</div>
+        </div>
+
+        <h3 class="text-xl font-bold text-gray-700 mb-4">Dados para o Cálculo</h3>
+        <div class="space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                 <div>
+                    <label for="nomePaciente" class="block text-sm font-medium text-gray-700 mb-1">Nome do Paciente:</label>
+                    <input type="text" id="nomePaciente" placeholder="Ex: Maria da Silva" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                </div>
+                <div>
+                    <label for="prontuario" class="block text-sm font-medium text-gray-700 mb-1">Prontuário:</label>
+                    <input type="text" id="prontuario" placeholder="Ex: 123456" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                </div>
+            </div>
+
+            <div>
+                 <label for="nomeMedicamento" class="block text-sm font-medium text-gray-700 mb-1">Selecione o Medicamento:</label>
+                 <select id="nomeMedicamento" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                    <option value="">-- Carregue uma planilha --</option>
+                 </select>
+            </div>
+            
+            <div id="infoConcentracoes" class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2 hidden">
+                <div>
+                    <p class="text-sm font-medium text-gray-700">Conc. Máxima Acesso Central:</p>
+                    <p id="concCentralInfo" class="mt-1 font-bold text-gray-900"></p>
+                </div>
+                <div>
+                    <p class="text-sm font-medium text-gray-700">Conc. Máxima Acesso Periférico:</p>
+                    <p id="concPerifericoInfo" class="mt-1 font-bold text-gray-900"></p>
+                </div>
+                <div class="md:col-span-2">
+                    <p class="text-sm font-medium text-gray-700">Incompatibilidade em Y:</p>
+                    <p id="incompatibilidadeYInfo" class="mt-1 font-bold text-gray-900"></p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div>
+                    <label for="dosePrescrita" class="block text-sm font-medium text-gray-700 mb-1">Dose Prescrita (mg):</label>
+                    <input type="number" id="dosePrescrita" placeholder="Ex: 250" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                </div>
+                <div>
+                    <label for="concDiluicao" class="block text-sm font-medium text-gray-700 mb-1">Conc. Diluição (mg/mL):</label>
+                    <input type="number" id="concDiluicao" placeholder="Ex: 10" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                </div>
+                <div>
+                    <label for="concAmpola" class="block text-sm font-medium text-gray-700 mb-1">Conc. Ampola (mg/mL):</label>
+                    <input type="number" id="concAmpola" placeholder="Ex: 50" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                </div>
+            </div>
+        </div>
+
+        <button onclick="calcularDiluicao()" class="mt-8 w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition">
+            Calcular e Gerar Etiqueta
+        </button>
+        
+        <div id="resultado" class="mt-8 p-6 bg-blue-50 rounded-lg border border-blue-200 hidden">
+            <p class="text-gray-800 font-semibold mb-2">Resultados do Cálculo:</p>
+            <ul class="text-gray-700 space-y-1 mb-6">
+                <li><span class="font-bold">Volume do Medicamento (puro):</span> <span id="volPuro"></span> mL</li>
+                <li><span class="font-bold">Volume do Diluente:</span> <span id="volDiluente"></span> mL</li>
+                <li><span class="font-bold">Volume Total da Solução:</span> <span id="volTotal"></span> mL</li>
+            </ul>
+
+            <div id="etiqueta-print-area" class="p-4 border-2 border-dashed border-gray-400 bg-white rounded-lg">
+                <p class="text-lg font-bold text-center mb-2">Etiqueta de Diluição</p>
+                <p><strong>Paciente:</strong> <span id="labelNomePaciente"></span></p>
+                <p><strong>Prontuário:</strong> <span id="labelProntuario"></span></p>
+                <hr class="my-1 border-dashed">
+                <p><strong>Medicamento:</strong> <span id="labelMedicamentoNome"></span></p>
+                <hr class="my-1 border-dashed">
+                <p><strong>Incompatibilidade em Y:</strong> <span id="labelIncompatibilidadeY"></span></p>
+                <hr class="my-1 border-dashed">
+                <p><strong>Dose Prescrita:</strong> <span id="labelDosePrescrita"></span> mg</p>
+                <p><strong>Conc. da Ampola:</strong> <span id="labelConcAmpola"></span> mg/mL</p>
+                <p><strong>Conc. da Diluição:</strong> <span id="labelConcDiluicao"></span> mg/mL</p>
+                <hr class="my-1 border-dashed">
+                <p><strong>Diluição:</strong> <span id="labelVolPuro"></span> mL de medicamento em <span id="labelVolDiluente"></span> mL de diluente</p>
+                <p><strong>Volume Final:</strong> <span id="labelVolTotal"></span> mL</p>
+                <hr class="my-1 border-dashed">
+                <p class="text-sm">Preparado em: <span id="labelDataHora"></span></p>
+            </div>
+            
+            <button onclick="imprimirEtiqueta()" class="mt-4 w-full bg-green-600 text-white font-bold py-2 px-4 rounded-lg shadow-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 transition">
+                Imprimir Etiqueta
+            </button>
+        </div>
+
+        <div id="mensagem" class="mt-4 p-4 rounded-lg border hidden"></div>
+    </div>
+
+    <script>
+        let bancoDeMedicamentos = {};
+
+        document.getElementById('uploadPlanilha').addEventListener('change', handleFileUpload);
+        document.getElementById('nomeMedicamento').addEventListener('change', preencherInformacoes);
+
+        function showMessage(message, type = 'info') {
+            const mensagemDiv = document.getElementById('mensagem');
+            mensagemDiv.textContent = message;
+            mensagemDiv.classList.remove('hidden', 'bg-red-100', 'text-red-700', 'border-red-300', 'bg-blue-100', 'text-blue-700', 'border-blue-300', 'bg-green-100', 'text-green-700', 'border-green-300');
+            if (type === 'error') {
+                mensagemDiv.classList.add('bg-red-100', 'text-red-700', 'border-red-300');
+            } else if (type === 'success') {
+                mensagemDiv.classList.add('bg-green-100', 'text-green-700', 'border-green-300');
+            } else {
+                mensagemDiv.classList.add('bg-blue-100', 'text-blue-700', 'border-blue-300');
+            }
+            mensagemDiv.classList.remove('hidden');
+        }
+
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            const mensagem = document.getElementById('mensagemPlanilha');
+            
+            if (!file) {
+                mensagem.textContent = 'Nenhum arquivo selecionado.';
+                mensagem.className = 'mt-2 text-sm text-center text-red-500 font-semibold';
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, {type: 'array'});
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                
+                const json = XLSX.utils.sheet_to_json(worksheet);
+                
+                bancoDeMedicamentos = {};
+                if (json.length > 0) {
+                    json.forEach(row => {
+                        const nome = row.MEDICAMENTO;
+                        if (nome) {
+                            bancoDeMedicamentos[nome] = {
+                                concAmpola: parseFloat(row.CONCENTRACAO_AMPOLA) || 0,
+                                concCentral: parseFloat(row.CONCENTRACAO_CENTRAL) || 0,
+                                concPeriferico: parseFloat(row.CONCENTRACAO_PERIFERICO) || 0,
+                                incompatibilidadeY: row.INCOMPATIBILIDADE_Y || 'Não informado',
+                            };
+                        }
+                    });
+                    popularSelecaoMedicamentos();
+                    mensagem.textContent = 'Planilha carregada com sucesso!';
+                    mensagem.className = 'mt-2 text-sm text-center text-green-600 font-semibold';
+                } else {
+                    mensagem.textContent = 'A planilha está vazia ou os cabeçalhos estão incorretos.';
+                    mensagem.className = 'mt-2 text-sm text-center text-red-500 font-semibold';
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function popularSelecaoMedicamentos() {
+            const select = document.getElementById('nomeMedicamento');
+            select.innerHTML = '<option value="">-- Selecione um medicamento --</option>';
+            for (const medicamento in bancoDeMedicamentos) {
+                const option = document.createElement('option');
+                option.value = medicamento;
+                option.textContent = medicamento;
+                select.appendChild(option);
+            }
+        }
+
+        function preencherInformacoes() {
+            const nomeMedicamento = document.getElementById('nomeMedicamento').value;
+            const infoDiv = document.getElementById('infoConcentracoes');
+            const concCentralInfo = document.getElementById('concCentralInfo');
+            const concPerifericoInfo = document.getElementById('concPerifericoInfo');
+            const incompatibilidadeYInfo = document.getElementById('incompatibilidadeYInfo');
+            
+            if (nomeMedicamento && bancoDeMedicamentos[nomeMedicamento]) {
+                const med = bancoDeMedicamentos[nomeMedicamento];
+                concCentralInfo.textContent = `${med.concCentral} mg/mL`;
+                concPerifericoInfo.textContent = `${med.concPeriferico} mg/mL`;
+                incompatibilidadeYInfo.textContent = med.incompatibilidadeY;
+                infoDiv.classList.remove('hidden');
+            } else {
+                concCentralInfo.textContent = '';
+                concPerifericoInfo.textContent = '';
+                incompatibilidadeYInfo.textContent = '';
+                infoDiv.classList.add('hidden');
+            }
+        }
+
+        function calcularDiluicao() {
+            const nomePaciente = document.getElementById('nomePaciente').value;
+            const prontuario = document.getElementById('prontuario').value;
+            const nomeMedicamento = document.getElementById('nomeMedicamento').value;
+            const dose = parseFloat(document.getElementById('dosePrescrita').value);
+            const concDiluicao = parseFloat(document.getElementById('concDiluicao').value);
+            const concAmpola = parseFloat(document.getElementById('concAmpola').value);
+            
+            const resultadoDiv = document.getElementById('resultado');
+            const mensagemDiv = document.getElementById('mensagem');
+            mensagemDiv.classList.add('hidden');
+            resultadoDiv.classList.add('hidden');
+
+            if (!nomePaciente || !prontuario || !nomeMedicamento || isNaN(dose) || isNaN(concDiluicao) || isNaN(concAmpola) || dose <= 0 || concDiluicao <= 0 || concAmpola <= 0) {
+                showMessage("Por favor, preencha todos os campos do cálculo com valores válidos.", 'error');
+                return;
+            }
+
+            if (concAmpola < concDiluicao) {
+                 showMessage("Erro: A concentração da ampola deve ser maior que a concentração da diluição.", 'error');
+                 return;
+            }
+
+            const volPuro = (dose / concAmpola);
+            const volTotal = (dose / concDiluicao); 
+            const volDiluente = volTotal - volPuro;
+
+            // Preenche os campos do resultado na tela
+            document.getElementById('volPuro').textContent = volPuro.toFixed(2);
+            document.getElementById('volDiluente').textContent = volDiluente.toFixed(2);
+            document.getElementById('volTotal').textContent = volTotal.toFixed(2);
+
+            // Preenche os campos da etiqueta
+            document.getElementById('labelNomePaciente').textContent = nomePaciente;
+            document.getElementById('labelProntuario').textContent = prontuario;
+            document.getElementById('labelMedicamentoNome').textContent = nomeMedicamento;
+
+            // Adiciona a informação de incompatibilidade à etiqueta
+            const medSelecionado = bancoDeMedicamentos[nomeMedicamento];
+            document.getElementById('labelIncompatibilidadeY').textContent = medSelecionado.incompatibilidadeY;
+
+            document.getElementById('labelDosePrescrita').textContent = dose.toFixed(0);
+            document.getElementById('labelConcAmpola').textContent = concAmpola.toFixed(2);
+            document.getElementById('labelConcDiluicao').textContent = concDiluicao.toFixed(2);
+            document.getElementById('labelVolPuro').textContent = volPuro.toFixed(2);
+            document.getElementById('labelVolDiluente').textContent = volDiluente.toFixed(2);
+            document.getElementById('labelVolTotal').textContent = volTotal.toFixed(2);
+            
+            const now = new Date();
+            const dataHora = now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR');
+            document.getElementById('labelDataHora').textContent = dataHora;
+
+            resultadoDiv.classList.remove('hidden');
+            showMessage("Cálculo realizado com sucesso!", 'success');
+        }
+
+        function imprimirEtiqueta() {
+            window.print();
+        }
+    </script>
+</body>
+</html>

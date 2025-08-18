@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Análise de Estoque - Leitor de Planilha</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f7f9;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        h1, h2 {
+            color: #1e3a8a;
+            text-align: center;
+        }
+        .header-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+            gap: 15px;
+        }
+        .main-buttons button, .filter-controls button {
+            padding: 10px 15px;
+            background-color: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        .main-buttons button:hover, .filter-controls button:hover {
+            background-color: #2563eb;
+        }
+        .main-buttons button.print-report-button {
+            background-color: #4a5568;
+        }
+        .main-buttons button.print-report-button:hover {
+            background-color: #2d3748;
+        }
+        .file-upload {
+            display: inline-block;
+        }
+        .file-upload input[type="file"] {
+            display: none;
+        }
+        .file-upload label {
+            background-color: #3b82f6;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        .file-upload label:hover {
+            background-color: #2563eb;
+        }
+        .date-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: bold;
+        }
+        .date-control input {
+            width: 50px;
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 1em;
+        }
+        .legend {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        .legend h3 {
+            margin-top: 0;
+            color: #1e3a8a;
+        }
+        .legend-item {
+            margin-bottom: 5px;
+        }
+        .legend-item .status-box {
+            display: inline-block;
+            width: 15px;
+            height: 15px;
+            margin-right: 8px;
+            border-radius: 3px;
+            vertical-align: middle;
+        }
+        .status-critico .status-box { background-color: #ef4444; }
+        .status-atencao .status-box { background-color: #f97316; }
+        .status-ok .status-box { background-color: #22c55e; }
+        .filter-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .filter-controls input {
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 80px;
+        }
+        .table-container {
+            overflow-x: auto;
+            max-height: 60vh;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+        thead th {
+            position: sticky;
+            top: 0;
+            background-color: #eff6ff;
+            color: #1e3a8a;
+            padding: 12px;
+            text-align: left;
+            border-bottom: 2px solid #ddd;
+        }
+        tbody td {
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+        }
+        tbody tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        input[type="text"], input[type="number"] {
+            width: 95%;
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+        }
+        td.item-column {
+            width: 300px;
+        }
+        .status-critico { color: #dc2626; font-weight: bold; }
+        .status-atencao { color: #f97316; font-weight: bold; }
+        .status-ok { color: #16a34a; font-weight: bold; }
+
+        .tendencia {
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+        .tendencia-up-fast { color: #16a34a; }
+        .tendencia-up-slow { color: #84cc16; }
+        .tendencia-stable { color: #71717a; }
+        .tendencia-down-slow { color: #f97316; }
+        .tendencia-down-fast { color: #dc2626; }
+        
+        @media print {
+            body { background-color: #fff; }
+            .container, .header-controls, .legend, .filter-controls, .main-buttons { display: none; }
+            .report-container { display: block; padding: 20px; }
+            .report-container h1 { text-align: center; margin-bottom: 20px; }
+            .report-container table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            .report-container th, .report-container td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+            .report-container th { background-color: #eff6ff; }
+        }
+        #relatorio-print-frame { display: none; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Controle de Estoque e Compras</h1>
+
+    <div class="header-controls">
+        <div class="file-upload">
+            <label for="file-input">
+                Carregar Planilha (.xlsx, .ods)
+            </label>
+            <input type="file" id="file-input" accept=".xlsx, .ods">
+        </div>
+        <div class="main-buttons">
+            <button onclick="calcularTabela()">Recalcular</button>
+            <button class="print-report-button" onclick="gerarRelatorioEImprimir()">Imprimir Relatório</button>
+        </div>
+    </div>
+
+    <div class="header-controls">
+        <div class="date-control">
+            Dia Vigente: <input type="number" id="dia-vigente-input" value="1" min="1" max="31">
+        </div>
+        <div class="filter-controls">
+            <label for="filtro-ruptura">Filtrar Ruptura < </label>
+            <input type="number" id="filtro-ruptura" placeholder="dias">
+            <button onclick="filtrarTabela()">Filtrar</button>
+        </div>
+    </div>
+
+    <div class="legend">
+        <h3>Legenda dos Status</h3>
+        <div class="legend-item status-critico">
+            <span class="status-box"></span> **Crítico!**: Ruptura prevista em menos de 7 dias.
+        </div>
+        <div class="legend-item status-atencao">
+            <span class="status-box"></span> **Atenção**: Ruptura prevista entre 7 e 15 dias.
+        </div>
+        <div class="legend-item status-ok">
+            <span class="status-box"></span> **OK**: Ruptura prevista para mais de 15 dias.
+        </div>
+    </div>
+    
+    <div class="legend">
+        <h3>Legenda de Tendência</h3>
+        <div class="legend-item tendencia-up-fast">
+            <span class="tendencia">↑</span> **Subindo Rápido**: Consumo em forte crescimento.
+        </div>
+        <div class="legend-item tendencia-up-slow">
+            <span class="tendencia">↗</span> **Crescendo Devagar**: Consumo com leve crescimento.
+        </div>
+        <div class="legend-item tendencia-stable">
+            <span class="tendencia">→</span> **Estável**: Consumo com pouca ou nenhuma variação.
+        </div>
+        <div class="legend-item tendencia-down-slow">
+            <span class="tendencia">↘</span> **Caindo Devagar**: Consumo com leve queda.
+        </div>
+        <div class="legend-item tendencia-down-fast">
+            <span class="tendencia">↓</span> **Caindo Rápido**: Consumo em forte queda.
+        </div>
+    </div>
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th class="item-column">Medicamento</th>
+                    <th>Estoque Atual</th>
+                    <th>Consumo Mês 1</th>
+                    <th>Consumo Mês 2</th>
+                    <th>Consumo Mês 3</th>
+                    <th>Consumo Mês Vigente</th>
+                    <th>Média Diária de Saída</th>
+                    <th>Previsão de Ruptura (dias)</th>
+                    <th>Status</th>
+                    <th>Tendência</th>
+                </tr>
+            </thead>
+            <tbody id="estoque-body">
+                </tbody>
+        </table>
+    </div>
+</div>
+
+<iframe id="relatorio-print-frame" style="display:none;"></iframe>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
+
+<script>
+    let dadosTabela = [];
+
+    document.getElementById('file-input').addEventListener('change', handleFile, false);
+    document.getElementById('dia-vigente-input').addEventListener('input', calcularTabela);
+
+    function handleFile(e) {
+        const file = e.target.files[0];
+        const reader = new FileReader();
+
+        reader.onload = function(e) {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, {type: 'array'});
+            const sheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[sheetName];
+            const json = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+            dadosTabela = json;
+            renderTable(dadosTabela);
+        };
+
+        reader.readAsArrayBuffer(file);
+    }
+
+    function renderTable(data) {
+        const tbody = document.getElementById('estoque-body');
+        tbody.innerHTML = '';
+        
+        document.getElementById('dia-vigente-input').value = new Date().getDate();
+
+        for (let i = 1; i < data.length; i++) {
+            const rowData = data[i];
+            const row = document.createElement('tr');
+            
+            // Colunas da planilha: Item, Estoque, ConsumoM1, ConsumoM2, ConsumoM3, ConsumoMesVigente
+            const item = rowData[0] || '';
+            const estoqueAtual = parseFloat(rowData[1]) || 0;
+            const consumoMes1 = parseFloat(rowData[2]) || 0;
+            const consumoMes2 = parseFloat(rowData[3]) || 0;
+            const consumoMes3 = parseFloat(rowData[4]) || 0;
+            const consumoMesVigente = parseFloat(rowData[5]) || 0;
+
+            row.innerHTML = `
+                <td class="item-column"><input type="text" value="${item}"></td>
+                <td><input type="number" class="estoque-atual" value="${estoqueAtual}"></td>
+                <td><input type="number" class="consumo-mes-1" value="${consumoMes1}"></td>
+                <td><input type="number" class="consumo-mes-2" value="${consumoMes2}"></td>
+                <td><input type="number" class="consumo-mes-3" value="${consumoMes3}"></td>
+                <td><span class="consumo-mes-vigente">${consumoMesVigente}</span></td>
+                <td><span class="consumo-medio">--</span></td>
+                <td><span class="ruptura-dias">--</span></td>
+                <td><span class="status">--</span></td>
+                <td><span class="tendencia">--</span></td>
+            `;
+            tbody.appendChild(row);
+        }
+        
+        calcularTabela();
+    }
+
+    function determinarTendencia(c1, c2, c3, cVigente) {
+        if (isNaN(c1) || isNaN(c2) || isNaN(c3) || isNaN(cVigente)) {
+            return { arrow: '→', class: 'tendencia-stable' };
+        }
+        
+        const consumos = [c1, c2, c3, cVigente];
+        
+        let subidas = 0;
+        let descidas = 0;
+        for (let i = 0; i < consumos.length - 1; i++) {
+            if (consumos[i+1] > consumos[i]) subidas++;
+            else if (consumos[i+1] < consumos[i]) descidas++;
+        }
+
+        if (subidas === 3) return { arrow: '↑', class: 'tendencia-up-fast' };
+        if (descidas === 3) return { arrow: '↓', class: 'tendencia-down-fast' };
+        if (subidas > descidas) return { arrow: '↗', class: 'tendencia-up-slow' };
+        if (descidas > subidas) return { arrow: '↘', class: 'tendencia-down-slow' };
+        
+        return { arrow: '→', class: 'tendencia-stable' };
+    }
+
+    function calcularTabela() {
+        const diaVigente = parseFloat(document.getElementById('dia-vigente-input').value) || 1;
+        if (diaVigente === 0) {
+            alert("O Dia Vigente não pode ser zero.");
+            return;
+        }
+        
+        const linhas = document.querySelectorAll('#estoque-body tr');
+
+        linhas.forEach(linha => {
+            const estoqueAtual = parseFloat(linha.querySelector('.estoque-atual').value) || 0;
+            const consumoMes1 = parseFloat(linha.querySelector('.consumo-mes-1').value) || 0;
+            const consumoMes2 = parseFloat(linha.querySelector('.consumo-mes-2').value) || 0;
+            const consumoMes3 = parseFloat(linha.querySelector('.consumo-mes-3').value) || 0;
+            const consumoMesVigente = parseFloat(linha.querySelector('.consumo-mes-vigente').textContent) || 0;
+
+            const consumoTotal = consumoMes1 + consumoMes2 + consumoMes3 + consumoMesVigente;
+            const diasTotais = 90 + diaVigente;
+            
+            const consumoMedioDiario = (diasTotais > 0) ? consumoTotal / diasTotais : 0;
+
+            const previsaoRuptura = (consumoMedioDiario > 0) ? estoqueAtual / consumoMedioDiario : Infinity;
+
+            linha.querySelector('.consumo-medio').textContent = consumoMedioDiario.toFixed(2);
+            linha.querySelector('.ruptura-dias').textContent = (previsaoRuptura === Infinity) ? 'N/A' : previsaoRuptura.toFixed(0);
+
+            const statusSpan = linha.querySelector('.status');
+            statusSpan.className = 'status'; 
+            if (previsaoRuptura <= 7) {
+                statusSpan.textContent = 'Crítico!';
+                statusSpan.classList.add('status-critico');
+            } else if (previsaoRuptura <= 15) {
+                statusSpan.textContent = 'Atenção';
+                statusSpan.classList.add('status-atencao');
+            } else {
+                statusSpan.textContent = 'OK';
+                statusSpan.classList.add('status-ok');
+            }
+
+            const tendenciaSpan = linha.querySelector('.tendencia');
+            const tendencia = determinarTendencia(consumoMes1, consumoMes2, consumoMes3, consumoMesVigente);
+            tendenciaSpan.textContent = tendencia.arrow;
+            tendenciaSpan.className = `tendencia ${tendencia.class}`;
+        });
+    }
+
+    function filtrarTabela() {
+        const diasFiltro = parseFloat(document.getElementById('filtro-ruptura').value) || 0;
+        const linhas = document.querySelectorAll('#estoque-body tr');
+
+        linhas.forEach(linha => {
+            const rupturaDiasText = linha.querySelector('.ruptura-dias').textContent;
+            const rupturaDias = parseFloat(rupturaDiasText);
+            
+            if (diasFiltro === 0 || (rupturaDias && rupturaDias < diasFiltro)) {
+                linha.style.display = '';
+            } else {
+                linha.style.display = 'none';
+            }
+        });
+    }
+
+    function gerarRelatorioEImprimir() {
+        const diasFiltro = parseFloat(document.getElementById('filtro-ruptura').value) || 0;
+        const linhasVisiveis = Array.from(document.querySelectorAll('#estoque-body tr'))
+            .filter(tr => tr.style.display !== 'none');
+
+        let relatorioHTML = `
+            <html>
+            <head>
+                <title>Relatório de Ruptura de Estoque</title>
+                <style>
+                    body { font-family: Arial, sans-serif; }
+                    h1 { text-align: center; }
+                    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+                    th { background-color: #f2f2f2; }
+                    .status-critico { color: #dc2626; font-weight: bold; }
+                    .status-atencao { color: #f97316; font-weight: bold; }
+                    .status-ok { color: #16a34a; font-weight: bold; }
+                    .tendencia-up-fast, .tendencia-up-slow { color: #16a34a; }
+                    .tendencia-down-fast, .tendencia-down-slow { color: #dc2626; }
+                    .tendencia-stable { color: #71717a; }
+                </style>
+            </head>
+            <body>
+                <h1>Relatório de Previsão de Ruptura</h1>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Medicamento</th>
+                            <th>Média Diária</th>
+                            <th>Dias até a Ruptura</th>
+                            <th>Status</th>
+                            <th>Tendência</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+
+        linhasVisiveis.forEach(linha => {
+            const medicamento = linha.querySelector('input[type="text"]').value;
+            const consumoMedio = linha.querySelector('.consumo-medio').textContent;
+            const rupturaDias = linha.querySelector('.ruptura-dias').textContent;
+            const statusText = linha.querySelector('.status').textContent;
+            const statusClass = linha.querySelector('.status').className.replace('status', '').trim();
+            const tendenciaArrow = linha.querySelector('.tendencia').textContent;
+            const tendenciaClass = linha.querySelector('.tendencia').className.replace('tendencia', '').trim();
+            
+            relatorioHTML += `
+                <tr>
+                    <td>${medicamento}</td>
+                    <td>${consumoMedio}</td>
+                    <td>${rupturaDias}</td>
+                    <td class="${statusClass}">${statusText}</td>
+                    <td class="${tendenciaClass}">${tendenciaArrow}</td>
+                </tr>
+            `;
+        });
+
+        relatorioHTML += `
+                    </tbody>
+                </table>
+            </body>
+            </html>
+        `;
+
+        const printWindow = window.open('', '', 'height=600,width=800');
+        printWindow.document.write(relatorioHTML);
+        printWindow.document.close();
+        printWindow.focus();
+        printWindow.print();
+    }
+</script>
+
+</body>
+</html>

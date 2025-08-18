@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Análise de Custo por Paciente</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f7f9;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        h1, h2 {
+            color: #1e3a8a;
+            text-align: center;
+        }
+        .header-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+            gap: 15px;
+        }
+        .file-upload label, button {
+            background-color: #3b82f6;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            border: none;
+            font-size: 14px;
+        }
+        .file-upload input[type="file"] {
+            display: none;
+        }
+        .file-upload label:hover, button:hover {
+            background-color: #2563eb;
+        }
+        .dashboard-container {
+            margin-top: 30px;
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 20px;
+        }
+        .filters-panel {
+            background-color: #f9f9f9;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        .filters-panel h3 {
+            margin-top: 0;
+        }
+        .filters-panel label, .filters-panel select, .filters-panel input {
+            display: block;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        .filters-panel button {
+            margin-top: 10px;
+            width: 100%;
+        }
+        .report-content {
+            display: none;
+            background-color: #f9f9f9;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        .chart-container {
+            margin-bottom: 20px;
+        }
+        #cost-summary {
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+        #patient-details {
+            display: none;
+        }
+        #patient-details h3 {
+            margin-top: 0;
+        }
+        #patient-details ul {
+            list-style-type: none;
+            padding: 0;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        #patient-details li {
+            padding: 8px;
+            border-bottom: 1px solid #ddd;
+        }
+        #error-message {
+            color: #c53030;
+            background-color: #fff5f5;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            margin-top: 20px;
+            display: none;
+        }
+        .abc-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            table-layout: fixed;
+        }
+        .abc-table th, .abc-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+            word-wrap: break-word;
+        }
+        .abc-table th {
+            background-color: #f2f2f2;
+        }
+        .abc-table th:nth-child(2), .abc-table td:nth-child(2) {
+            width: 15%;
+        }
+        .class-A { background-color: #fce7e7; }
+        .class-B { background-color: #fffbe6; }
+        .class-C { background-color: #e6f7ff; }
+
+        #consumption-analysis-section {
+            margin-top: 30px;
+        }
+        .consumption-filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 20px;
+            align-items: flex-end;
+        }
+        .consumption-filters > div {
+            flex: 1;
+            min-width: 200px;
+        }
+    </style>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+<div class="container">
+    <h1>Análise de Custo por Paciente</h1>
+    <div class="header-controls">
+        <div class="file-upload">
+            <label for="file-input">
+                Carregar Planilha (.xlsx, .ods, .csv)
+            </label>
+            <input type="file" id="file-input" accept=".xlsx, .ods, .csv">
+        </div>
+    </div>
+    <div id="error-message"></div>
+
+    <div id="dashboard-container" class="dashboard-container" style="display: none;">
+        <div class="filters-panel">
+            <h3>Filtros de Análise</h3>
+            <label for="paciente-select">Selecionar Paciente:</label>
+            <select id="paciente-select">
+                <option value="todos">Todos</option>
+            </select>
+            
+            <label for="produto-select">Selecionar Produto:</label>
+            <select id="produto-select">
+                <option value="todos">Todos</option>
+            </select>
+
+            <label for="date-start">Data de Início:</label>
+            <input type="date" id="date-start">
+            <label for="date-end">Data de Fim:</label>
+            <input type="date" id="date-end">
+
+            <button onclick="applyFilters()">Aplicar Filtros</button>
+            <button onclick="printReport()">Imprimir Relatório</button>
+        </div>
+
+        <div id="report-content" class="report-content">
+            <h2>Dashboard de Análise</h2>
+            <div id="cost-summary"></div>
+            
+            <div class="chart-container">
+                <h3>Custo Total por Paciente</h3>
+                <canvas id="costPerPatientChart"></canvas>
+            </div>
+            
+            <div class="chart-container">
+                <h3>Produtos de Maior Custo</h3>
+                <canvas id="topProductsChart"></canvas>
+            </div>
+            
+            <div id="patient-details" style="display: none;">
+                <h3>Detalhes do Paciente</h3>
+                <div id="patient-details-content"></div>
+            </div>
+
+            <div id="abc-analysis-section">
+                <h3>Análise de Custo ABC por Produto</h3>
+                <div id="abc-table-container"></div>
+            </div>
+
+            <div id="consumption-analysis-section">
+                <h3>Gráfico de Variação de Consumo Mensal</h3>
+                <div class="consumption-filters">
+                    <div style="flex-grow: 2;">
+                        <label for="abc-class-select">Filtrar por Classe ABC:</label>
+                        <select id="abc-class-select">
+                            <option value="all">Todas</option>
+                            <option value="A">Classe A</option>
+                            <option value="B">Classe B</option>
+                            <option value="C">Classe C</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="date-start-period1">Período 1 - Início:</label>
+                        <input type="date" id="date-start-period1">
+                    </div>
+                    <div>
+                        <label for="date-end-period1">Período 1 - Fim:</label>
+                        <input type="date" id="date-end-period1">
+                    </div>
+                    <div>
+                        <label for="date-start-period2">Período 2 - Início:</label>
+                        <input type="date" id="date-start-period2">
+                    </div>
+                    <div>
+                        <label for="date-end-period2">Período 2 - Fim:</label>
+                        <input type="date" id="date-end-period2">
+                    </div>
+                    <div>
+                        <button onclick="generateConsumptionChart()">Gerar Gráfico de Variação</button>
+                    </div>
+                </div>
+                <div id="consumption-chart-container">
+                    <canvas id="consumptionChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let rawData = [];
+    let charts = {};
+    let abcCategories = {};
+
+    const fileInput = document.getElementById('file-input');
+    const dashboardContainer = document.getElementById('dashboard-container');
+    const reportContent = document.getElementById('report-content');
+    const pacienteSelect = document.getElementById('paciente-select');
+    const produtoSelect = document.getElementById('produto-select');
+    const dateStartInput = document.getElementById('date-start');
+    const dateEndInput = document.getElementById('date-end');
+    const errorMessageDiv = document.getElementById('error-message');
+
+    fileInput.addEventListener('change', handleFile, false);
+
+    function formatCurrency(number) {
+        if (typeof number !== 'number') return 'R$ 0,00';
+        return `R$ ${number.toFixed(2).replace('.', ',').replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.')}`;
+    }
+
+    function handleFile(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        errorMessageDiv.style.display = 'none';
+
+        const reader = new FileReader();
+
+        reader.onload = function(e) {
+            try {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const sheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[sheetName];
+                
+                rawData = XLSX.utils.sheet_to_json(worksheet);
+
+                if (rawData.length > 0) {
+                    populateFiltersAndApply();
+                    dashboardContainer.style.display = 'grid';
+                    reportContent.style.display = 'block';
+                } else {
+                    displayError("A planilha parece estar vazia. Por favor, verifique se há dados na primeira aba.");
+                }
+            } catch (error) {
+                console.error("Erro ao processar o arquivo:", error);
+                displayError("Não foi possível ler o arquivo. Por favor, verifique se o formato está correto (.xlsx, .ods, .csv) e se a planilha não está corrompida.");
+            }
+        };
+
+        reader.readAsArrayBuffer(file);
+    }
+    
+    function displayError(message) {
+        errorMessageDiv.textContent = message;
+        errorMessageDiv.style.display = 'block';
+        dashboardContainer.style.display = 'none';
+    }
+
+    function populateFiltersAndApply() {
+        const pacientes = new Set();
+        const produtos = new Set();
+        
+        rawData.forEach(row => {
+            const paciente = row['Destino (Usuário do Serviço)']?.trim();
+            const produto = row['Produto / Medicamento']?.trim();
+            
+            if (paciente) pacientes.add(paciente);
+            if (produto) produtos.add(produto);
+        });
+
+        updateFilterOptions(Array.from(pacientes), Array.from(produtos));
+        applyFilters();
+    }
+
+    function updateFilterOptions(pacientes, produtos) {
+        pacienteSelect.innerHTML = '<option value="todos">Todos</option>';
+        pacientes.sort().forEach(paciente => {
+            const option = document.createElement('option');
+            option.value = paciente;
+            option.textContent = paciente;
+            pacienteSelect.appendChild(option);
+        });
+
+        produtoSelect.innerHTML = '<option value="todos">Todos</option>';
+        produtos.sort().forEach(produto => {
+            const option = document.createElement('option');
+            option.value = produto;
+            option.textContent = produto;
+            produtoSelect.appendChild(option);
+        });
+    }
+    
+    function applyFilters() {
+        const selectedPaciente = pacienteSelect.value;
+        const selectedProduto = produtoSelect.value;
+        const startDate = dateStartInput.value;
+        const endDate = dateEndInput.value;
+
+        let filteredData = {};
+        let totalCost = 0;
+
+        rawData.forEach(row => {
+            const paciente = row['Destino (Usuário do Serviço)']?.trim();
+            const produto = row['Produto / Medicamento']?.trim();
+            
+            const valorUnitario = (row['Val. Unit. R$'] || '0').toString().replace(',', '.').trim();
+            const quantidade = (row['Qtde'] || '0').toString().replace(',', '.').trim();
+            
+            const valor = parseFloat(valorUnitario) || 0;
+            const quantidadeFloat = parseFloat(quantidade) || 0;
+            const data = row['Data']?.trim();
+
+            if (!data) return;
+
+            const [day, month, year] = data.split('/');
+            const formattedDate = `${year}-${month}-${day}`;
+
+            const matchesPaciente = (selectedPaciente === 'todos' || paciente === selectedPaciente);
+            const matchesProduto = (selectedProduto === 'todos' || produto === selectedProduto);
+            const matchesDate = (!startDate || new Date(formattedDate) >= new Date(startDate)) && (!endDate || new Date(formattedDate) <= new Date(endDate));
+
+            if (paciente && valor > 0 && matchesPaciente && matchesProduto && matchesDate) {
+                if (!filteredData[paciente]) {
+                    filteredData[paciente] = {
+                        totalCost: 0,
+                        products: []
+                    };
+                }
+                const itemCost = valor * quantidadeFloat;
+                filteredData[paciente].totalCost += itemCost;
+                filteredData[paciente].products.push({ produto, valor, quantidade: quantidadeFloat, data, itemCost });
+                totalCost += itemCost;
+            }
+        });
+        
+        updateDashboard(filteredData, totalCost);
+        runABCAnalysis(filteredData);
+    }
+    
+    function updateDashboard(data, totalCost) {
+        const patientLabels = Object.keys(data).filter(p => data[p].totalCost > 0);
+        const patientCosts = patientLabels.map(p => data[p].totalCost);
+        
+        const numeroPacientes = patientLabels.length;
+        const mediaCustoPorPaciente = numeroPacientes > 0 ? totalCost / numeroPacientes : 0;
+        
+        document.getElementById('cost-summary').innerHTML = `
+            <p><strong>Custo total no período filtrado:</strong> ${formatCurrency(totalCost)}</p>
+            <p><strong>Número de pacientes analisados:</strong> ${numeroPacientes}</p>
+            <p><strong>Média de custo por paciente:</strong> ${formatCurrency(mediaCustoPorPaciente)}</p>
+        `;
+
+        const ctxPatient = document.getElementById('costPerPatientChart').getContext('2d');
+        if (charts.costPerPatient) charts.costPerPatient.destroy();
+        charts.costPerPatient = new Chart(ctxPatient, {
+            type: 'bar',
+            data: {
+                labels: patientLabels,
+                datasets: [{
+                    label: 'Custo Total',
+                    data: patientCosts,
+                    backgroundColor: '#3b82f6',
+                    borderColor: '#1e3a8a',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                scales: {
+                    y: { 
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return formatCurrency(value);
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        const productCosts = {};
+        Object.values(data).forEach(paciente => {
+            paciente.products.forEach(p => {
+                const cost = p.itemCost;
+                productCosts[p.produto] = (productCosts[p.produto] || 0) + cost;
+            });
+        });
+        const topProducts = Object.entries(productCosts).sort(([, a], [, b]) => b - a);
+        const productLabels = topProducts.map(([label]) => label);
+        const productValues = topProducts.map(([, value]) => value);
+        
+        const ctxProducts = document.getElementById('topProductsChart').getContext('2d');
+        if (charts.topProducts) charts.topProducts.destroy();
+        charts.topProducts = new Chart(ctxProducts, {
+            type: 'bar',
+            data: {
+                labels: productLabels,
+                datasets: [{
+                    label: 'Custo Total',
+                    data: productValues,
+                    backgroundColor: '#4BC0C0',
+                    borderColor: '#0b5656',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        ticks: {
+                             callback: function(value) {
+                                return formatCurrency(value);
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        const selectedPaciente = pacienteSelect.value;
+        if (selectedPaciente !== 'todos' && data[selectedPaciente]) {
+            document.getElementById('patient-details').style.display = 'block';
+            const detailsContent = document.getElementById('patient-details-content');
+            detailsContent.innerHTML = `<h4>Histórico de Consumo de ${selectedPaciente}</h4>`;
+            
+            const ul = document.createElement('ul');
+            data[selectedPaciente].products.forEach(item => {
+                const li = document.createElement('li');
+                li.textContent = `${item.data} - ${item.produto}: ${item.quantidade} unidade(s) (${formatCurrency(item.itemCost)})`;
+                ul.appendChild(li);
+            });
+            detailsContent.appendChild(ul);
+        } else {
+            document.getElementById('patient-details').style.display = 'none';
+        }
+    }
+    
+    function runABCAnalysis(data) {
+        const productCosts = {};
+        Object.values(data).forEach(paciente => {
+            paciente.products.forEach(p => {
+                const cost = p.itemCost;
+                productCosts[p.produto] = (productCosts[p.produto] || 0) + cost;
+            });
+        });
+
+        const products = Object.entries(productCosts).map(([produto, cost]) => ({
+            produto,
+            cost
+        }));
+        
+        products.sort((a, b) => b.cost - a.cost);
+
+        let totalCost = products.reduce((sum, p) => sum + p.cost, 0);
+        let cumulativeCost = 0;
+        abcCategories = {};
+
+        let abcTableHTML = `
+            <table class="abc-table">
+                <thead>
+                    <tr>
+                        <th style="width: 50%;">Produto</th>
+                        <th style="width: 15%;">Custo Total</th>
+                        <th style="width: 15%;">% do Custo Total</th>
+                        <th style="width: 10%;">% Acumulado</th>
+                        <th style="width: 10%;">Classe</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        products.forEach(p => {
+            cumulativeCost += p.cost;
+            const percentage = (p.cost / totalCost) * 100;
+            const cumulativePercentage = (cumulativeCost / totalCost) * 100;
+            
+            let classe = '';
+            let classColor = '';
+            if (cumulativePercentage <= 80) {
+                classe = 'A';
+                classColor = 'class-A';
+            } else if (cumulativePercentage <= 95) {
+                classe = 'B';
+                classColor = 'class-B';
+            } else {
+                classe = 'C';
+                classColor = 'class-C';
+            }
+
+            abcCategories[p.produto] = classe;
+
+            abcTableHTML += `
+                <tr class="${classColor}">
+                    <td>${p.produto}</td>
+                    <td>${formatCurrency(p.cost)}</td>
+                    <td>${percentage.toFixed(2).replace('.', ',')}%</td>
+                    <td>${cumulativePercentage.toFixed(2).replace('.', ',')}%</td>
+                    <td>${classe}</td>
+                </tr>
+            `;
+        });
+
+        abcTableHTML += `
+                </tbody>
+            </table>
+        `;
+        
+        document.getElementById('abc-table-container').innerHTML = abcTableHTML;
+    }
+
+    function generateConsumptionChart() {
+        const selectedAbcClass = document.getElementById('abc-class-select').value;
+        const startDate1 = document.getElementById('date-start-period1').value;
+        const endDate1 = document.getElementById('date-end-period1').value;
+        const startDate2 = document.getElementById('date-start-period2').value;
+        const endDate2 = document.getElementById('date-end-period2').value;
+
+        if (!startDate1 || !endDate1) {
+            alert('Por favor, defina o Período 1 para gerar o gráfico.');
+            return;
+        }
+
+        const datasets = [];
+        const labels = [];
+        
+        const period1Data = aggregateConsumptionByMonth(rawData, startDate1, endDate1, selectedAbcClass);
+        const period2Data = aggregateConsumptionByMonth(rawData, startDate2, endDate2, selectedAbcClass);
+        
+        const allDates = new Set([...Object.keys(period1Data), ...Object.keys(period2Data)]);
+        labels.push(...Array.from(allDates).sort());
+
+        if (Object.keys(period1Data).length > 0) {
+            datasets.push({
+                label: `Período 1 (${startDate1} a ${endDate1})`,
+                data: labels.map(label => period1Data[label] || 0),
+                borderColor: 'rgb(75, 192, 192)',
+                tension: 0.1,
+                fill: false
+            });
+        }
+        
+        if (Object.keys(period2Data).length > 0) {
+             datasets.push({
+                label: `Período 2 (${startDate2} a ${endDate2})`,
+                data: labels.map(label => period2Data[label] || 0),
+                borderColor: 'rgb(255, 99, 132)',
+                tension: 0.1,
+                fill: false
+            });
+        }
+        
+        const ctx = document.getElementById('consumptionChart').getContext('2d');
+        if (charts.consumption) charts.consumption.destroy();
+        
+        charts.consumption = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels.map(date => date.slice(5) + '/' + date.slice(0, 4)), // Formata para MM/YYYY
+                datasets: datasets
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Consumo Total'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Mês'
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    function aggregateConsumptionByMonth(data, startDate, endDate, abcFilter) {
+        const consumptionByMonth = {};
+        if (!startDate || !endDate) return consumptionByMonth;
+
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+
+        data.forEach(row => {
+            const produto = row['Produto / Medicamento']?.trim();
+            const abcClass = abcCategories[produto];
+            const dataRow = row['Data']?.trim();
+            const quantidade = parseFloat((row['Qtde'] || '0').toString().replace(',', '.')) || 0;
+
+            if (!dataRow || !produto || !abcClass || quantidade === 0) return;
+
+            const [day, month, year] = dataRow.split('/');
+            const date = new Date(`${year}-${month}-${day}`);
+            
+            const matchesAbc = (abcFilter === 'all' || abcClass === abcFilter);
+            const matchesDate = (date >= start && date <= end);
+
+            if (matchesAbc && matchesDate) {
+                const yearMonth = `${year}-${month.padStart(2, '0')}`;
+                consumptionByMonth[yearMonth] = (consumptionByMonth[yearMonth] || 0) + quantidade;
+            }
+        });
+        
+        return consumptionByMonth;
+    }
+
+    function printReport() {
+        const chart1 = document.getElementById('costPerPatientChart').toDataURL('image/png');
+        const chart2 = document.getElementById('topProductsChart').toDataURL('image/png');
+        const chart3 = charts.consumption ? document.getElementById('consumptionChart').toDataURL('image/png') : null;
+
+        const summary = document.getElementById('cost-summary').innerHTML;
+        const patientDetails = document.getElementById('patient-details').innerHTML;
+        const abcTable = document.getElementById('abc-analysis-section').innerHTML;
+
+        let consumptionChartHTML = '';
+        if (chart3) {
+            consumptionChartHTML = `
+                <div style="page-break-inside: avoid;">
+                    <h3>Gráfico de Variação de Consumo Mensal</h3>
+                    <img src="${chart3}" style="width: 100%;">
+                </div>
+            `;
+        }
+        
+        const reportHTML = `
+            <html>
+            <head>
+                <title>Relatório de Custo</title>
+                <style>
+                    body { font-family: Arial, sans-serif; }
+                    h1, h2, h3 { color: #1e3a8a; text-align: center; }
+                    p { text-align: center; }
+                    .abc-table { width: 100%; border-collapse: collapse; margin-top: 20px; table-layout: fixed; }
+                    .abc-table th, .abc-table td { border: 1px solid #ddd; padding: 8px; text-align: left; word-wrap: break-word; }
+                    .abc-table th { background-color: #f2f2f2; }
+                    .class-A { background-color: #fce7e7; }
+                    .class-B { background-color: #fffbe6; }
+                    .class-C { background-color: #e6f7ff; }
+                    img { max-width: 100%; height: auto; }
+                    .chart-container, .abc-analysis-section, #consumption-analysis-section { page-break-inside: avoid; }
+                </style>
+            </head>
+            <body>
+                <h1>Relatório de Análise de Custos</h1>
+                <div class="report-content-print">
+                    ${summary}
+                    <div style="page-break-inside: avoid;">
+                        <h3>Custo Total por Paciente</h3>
+                        <img src="${chart1}" style="width: 100%;">
+                    </div>
+                    <div style="page-break-inside: avoid;">
+                        <h3>Produtos de Maior Custo</h3>
+                        <img src="${chart2}" style="width: 100%;">
+                    </div>
+                    ${consumptionChartHTML}
+                    ${patientDetails}
+                    ${abcTable}
+                </div>
+            </body>
+            </html>
+        `;
+
+        const printWindow = window.open('', '', 'height=600,width=800');
+        printWindow.document.write(reportHTML);
+        printWindow.document.close();
+        printWindow.focus();
+        printWindow.print();
+        printWindow.close();
+    }
+</script>
+
+</body>
+</html>
