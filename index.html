@@ -1,183 +1,101 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Controle de Ordens de Compra</title>
-    
+    <title>Portal de Ferramentas Farmacêuticas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f4;
-            margin: 0;
-            padding: 20px;
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8;
         }
-        header {
-            background-color: #333;
-            color: #fff;
+        .app-container {
+            width: 100%;
+            height: calc(100vh - 80px); /* Ajusta a altura para caber na tela, subtraindo a altura do menu */
+            border: none;
+        }
+        /* Ajustando as cores e o layout do cabeçalho */
+        .main-header {
+            background-color: #066b30; /* Cor verde do logo */
+            color: white;
             padding: 1rem;
             text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem; /* Espaço entre o logo e o título */
+            height: 80px; /* Altura fixa para o cabeçalho */
         }
-        main {
-            max-width: 800px;
-            margin: 20px auto;
+        .main-header img {
+            height: 64px; /* Tamanho do logo */
+            width: auto;
+        }
+        .menu-buttons {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            padding: 1rem;
+            gap: 1rem;
             background-color: #fff;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-        .form-container, .table-container {
-            margin-bottom: 2rem;
-        }
-        .form-group {
-            margin-bottom: 1rem;
-        }
-        label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-weight: bold;
-        }
-        input[type="text"], input[type="date"] {
-            width: 100%;
-            padding: 8px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-        }
-        button {
-            background-color: #5cb85c;
+        /* Ajustando as cores dos botões para combinar com o novo tema */
+        .menu-buttons button {
+            background-color: #38a169; /* Um verde um pouco mais claro para os botões */
             color: white;
             padding: 10px 15px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
+            border-radius: 6px;
+            font-weight: 600;
+            transition: background-color 0.3s;
         }
-        button:hover {
-            background-color: #4cae4c;
+        .menu-buttons button:hover {
+            background-color: #2f855a;
         }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        th, td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: left;
-        }
-        th {
-            background-color: #f2f2f2;
-        }
-        tr:nth-child(even) {
-            background-color: #f9f9f9;
-        }
-        .atrasado {
-            font-weight: bold;
-            color: red;
+        .menu-buttons button.active {
+            background-color: #066b30; /* Cor do logo para o botão ativo */
         }
     </style>
 </head>
-<body>
-    <header>
-        <h1>Controle de Ordens de Compra</h1>
+<body class="flex flex-col h-screen">
+
+    <header class="main-header">
+        <img src="LOGO-IDEAS-TRANSPARENTE.png" alt="Logo da Empresa">
+        <h1 class="text-3xl font-bold">Portal de Ferramentas Farmacêuticas</h1>
     </header>
 
-    <main>
-        <section class="form-container">
-            <h2>Cadastrar Nova Ordem</h2>
-            <form id="formOrdemCompra">
-                <div class="form-group">
-                    <label for="numero">Número da Ordem:</label>
-                    <input type="text" id="numero" required>
-                </div>
-                <div class="form-group">
-                    <label for="fornecedor">Fornecedor:</label>
-                    <input type="text" id="fornecedor" required>
-                </div>
-                <div class="form-group">
-                    <label for="dataPrevisao">Data de Previsão:</label>
-                    <input type="date" id="dataPrevisao" required>
-                </div>
-                <button type="submit">Cadastrar Ordem</button>
-            </form>
-        </section>
+    <nav class="menu-buttons">
+        <button id="btn-diluicao" onclick="loadApp('diluicao_29.0_index.html.html', this)">Calculadora de Diluição</button>
+        <button id="btn-custo" onclick="loadApp('custo por paciente 10.0 index.html', this)">Custo por Paciente</button>
+        <button id="btn-rastreabilidade" onclick="loadApp('Rastreabilidade teste web 26.0 index.html', this)">Rastreabilidade</button>
+        <button id="btn-suprimentos" onclick="loadApp('Suprimentos 9.0 index.html', this)">Análise de Estoque</button>
+        <button id="btn-ocs" onclick="loadApp('controle_ordens.html', this)">Controle de OCs</button>
+        <button id="btn-emprestimo" onclick="loadApp('Termo de empréstimo 4.0 index.html', this)">Termo de Empréstimo</button>
+        
+    </nav>
 
-        <hr>
-
-        <section class="table-container">
-            <h2>Ordens Cadastradas</h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Número da Ordem</th>
-                        <th>Fornecedor</th>
-                        <th>Data de Previsão</th>
-                        <th>Dias de Atraso</th>
-                    </tr>
-                </thead>
-                <tbody id="lista-ordens">
-                    </tbody>
-            </table>
-        </section>
+    <main class="flex-grow p-4">
+        <iframe id="app-iframe" class="app-container w-full h-full rounded-lg shadow-lg bg-white p-4"></iframe>
     </main>
 
     <script>
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyggPUkgLaNt5F0vEnhUd6y_kMvoWQcJvg3R2m2lhWEkejawM9hrTOXEDxUL6375lCyUw/exec'; // <-- COLE A URL AQUI
+        // Função para carregar o aplicativo no iframe
+        function loadApp(appFile, button) {
+            const iframe = document.getElementById('app-iframe');
+            iframe.src = appFile;
 
+            // Remove a classe 'active' de todos os botões
+            const buttons = document.querySelectorAll('.menu-buttons button');
+            buttons.forEach(btn => btn.classList.remove('active'));
+
+            // Adiciona a classe 'active' ao botão clicado
+            button.classList.add('active');
+        }
+
+        // Carrega o primeiro aplicativo por padrão ao iniciar
         document.addEventListener('DOMContentLoaded', () => {
-            const form = document.getElementById('formOrdemCompra');
-            const listaOrdens = document.getElementById('lista-ordens');
-
-            function carregarOrdens() {
-                fetch(SCRIPT_URL + '?action=getOrdens')
-                    .then(response => response.json())
-                    .then(ordens => {
-                        listaOrdens.innerHTML = '';
-                        ordens.forEach(ordem => {
-                            const novoItem = document.createElement('tr');
-                            let statusAtraso = '';
-
-                            if (parseInt(ordem.diasAtraso) > 0) {
-                                statusAtraso = `<span class="atrasado">${ordem.diasAtraso}</span>`;
-                            } else {
-                                statusAtraso = ordem.diasAtraso;
-                            }
-
-                            novoItem.innerHTML = `
-                                <td>${ordem.numero}</td>
-                                <td>${ordem.fornecedor}</td>
-                                <td>${ordem.dataPrevisao}</td>
-                                <td>${statusAtraso}</td>
-                            `;
-                            listaOrdens.appendChild(novoItem);
-                        });
-                    })
-                    .catch(error => console.error('Erro ao carregar as ordens:', error));
-            }
-
-            form.addEventListener('submit', (e) => {
-                e.preventDefault();
-                
-                const numero = document.getElementById('numero').value;
-                const fornecedor = document.getElementById('fornecedor').value;
-                const dataPrevisao = document.getElementById('dataPrevisao').value;
-                
-                const novaOrdem = { numero, fornecedor, dataPrevisao };
-                
-                fetch(SCRIPT_URL, {
-                    method: 'POST',
-                    body: JSON.stringify(novaOrdem)
-                })
-                .then(response => {
-                    alert('Ordem salva com sucesso!');
-                    form.reset();
-                    carregarOrdens();
-                })
-                .catch(error => {
-                    console.error('Erro ao salvar a ordem:', error);
-                    alert('Ocorreu um erro ao salvar a ordem.');
-                });
-            });
-
-            carregarOrdens();
+            const firstButton = document.getElementById('btn-diluicao');
+            loadApp('diluicao_29.0_index.html.html', firstButton);
         });
     </script>
 </body>
