@@ -2,7 +2,7 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-sclae=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Calculadora de Diluição de Medicamentos</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -145,7 +145,8 @@
 
     <script>
         let bancoDeMedicamentos = {};
-        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxPS-WD7FNLYwGZtdVB6TevnsANRPXogCTNueZFWOe3Yaj1h9TakDB-M_0-6Fqg_w/exec'; // <--- SUBSTITUA AQUI!
+        // <--- COLOQUE A URL DO APPS SCRIPT AQUI.
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzuweSMAkj1OmWrPu8thIQNkGCAdM5F_kIANZIIpM8WveAarpcHJOZhBS-ENOr_HYxg/exec';
 
         document.getElementById('nomeMedicamento').addEventListener('change', preencherInformacoes);
 
@@ -153,6 +154,7 @@
         async function carregarDadosAppsScript() {
             const mensagem = document.getElementById('mensagemPlanilha');
             const select = document.getElementById('nomeMedicamento');
+            select.disabled = true;
 
             try {
                 const response = await fetch(APPS_SCRIPT_URL);
@@ -161,6 +163,10 @@
                 }
                 const data = await response.json();
                 
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
                 if (data.length > 0) {
                     bancoDeMedicamentos = {};
                     data.forEach(row => {
@@ -185,7 +191,6 @@
             } catch (error) {
                 mensagem.textContent = `Erro: ${error.message}`;
                 mensagem.className = 'mt-2 text-sm text-center text-red-500 font-semibold';
-                select.disabled = true;
             }
         }
         
