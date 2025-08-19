@@ -6,21 +6,18 @@
     <title>Controle de Ordens de Compra</title>
     
     <style>
-        /* CSS para o estilo da página */
         body {
             font-family: Arial, sans-serif;
             background-color: #f4f4f4;
             margin: 0;
             padding: 20px;
         }
-
         header {
             background-color: #333;
             color: #fff;
             padding: 1rem;
             text-align: center;
         }
-
         main {
             max-width: 800px;
             margin: 20px auto;
@@ -29,28 +26,23 @@
             border-radius: 8px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         }
-
         .form-container, .table-container {
             margin-bottom: 2rem;
         }
-
         .form-group {
             margin-bottom: 1rem;
         }
-
         label {
             display: block;
             margin-bottom: 0.5rem;
             font-weight: bold;
         }
-
         input[type="text"], input[type="date"] {
             width: 100%;
             padding: 8px;
             border: 1px solid #ccc;
             border-radius: 4px;
         }
-
         button {
             background-color: #5cb85c;
             color: white;
@@ -59,30 +51,24 @@
             border-radius: 4px;
             cursor: pointer;
         }
-
         button:hover {
             background-color: #4cae4c;
         }
-
         table {
             width: 100%;
             border-collapse: collapse;
         }
-
         th, td {
             border: 1px solid #ddd;
             padding: 8px;
             text-align: left;
         }
-
         th {
             background-color: #f2f2f2;
         }
-
         tr:nth-child(even) {
             background-color: #f9f9f9;
         }
-
         .atrasado {
             font-weight: bold;
             color: red;
@@ -134,45 +120,39 @@
     </main>
 
     <script>
-        // JavaScript para a lógica da aplicação
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyggPUkgLaNt5F0vEnhUd6y_kMvoWQcJvg3R2m2lhWEkejawM9hrTOXEDxUL6375lCyUw/exec'; // <-- COLE A URL AQUI
+
         document.addEventListener('DOMContentLoaded', () => {
             const form = document.getElementById('formOrdemCompra');
             const listaOrdens = document.getElementById('lista-ordens');
 
-            // Função para carregar as ordens do LocalStorage e exibi-las
             function carregarOrdens() {
-                const ordens = JSON.parse(localStorage.getItem('ordensDeCompra')) || [];
-                listaOrdens.innerHTML = ''; // Limpa a tabela antes de recarregar
+                fetch(SCRIPT_URL + '?action=getOrdens')
+                    .then(response => response.json())
+                    .then(ordens => {
+                        listaOrdens.innerHTML = '';
+                        ordens.forEach(ordem => {
+                            const novoItem = document.createElement('tr');
+                            let statusAtraso = '';
 
-                ordens.forEach(ordem => {
-                    const dataPrevisao = new Date(ordem.dataPrevisao + 'T00:00:00'); // Adiciona T00:00:00 para evitar problemas de fuso horário
-                    const dataAtual = new Date();
-                    const diffMilissegundos = dataAtual.getTime() - dataPrevisao.getTime();
-                    const diasDeAtraso = Math.floor(diffMilissegundos / (1000 * 60 * 60 * 24));
-                    
-                    const novoItem = document.createElement('tr');
-                    let statusAtraso = '';
+                            if (parseInt(ordem.diasAtraso) > 0) {
+                                statusAtraso = `<span class="atrasado">${ordem.diasAtraso}</span>`;
+                            } else {
+                                statusAtraso = ordem.diasAtraso;
+                            }
 
-                    if (diasDeAtraso > 0) {
-                        statusAtraso = `<span class="atrasado">${diasDeAtraso} dias</span>`;
-                    } else if (diasDeAtraso === 0) {
-                        statusAtraso = 'Entrega hoje';
-                    } else {
-                        statusAtraso = 'No prazo';
-                    }
-
-                    novoItem.innerHTML = `
-                        <td>${ordem.numero}</td>
-                        <td>${ordem.fornecedor}</td>
-                        <td>${ordem.dataPrevisao}</td>
-                        <td>${statusAtraso}</td>
-                    `;
-                    
-                    listaOrdens.appendChild(novoItem);
-                });
+                            novoItem.innerHTML = `
+                                <td>${ordem.numero}</td>
+                                <td>${ordem.fornecedor}</td>
+                                <td>${ordem.dataPrevisao}</td>
+                                <td>${statusAtraso}</td>
+                            `;
+                            listaOrdens.appendChild(novoItem);
+                        });
+                    })
+                    .catch(error => console.error('Erro ao carregar as ordens:', error));
             }
 
-            // Função para lidar com o envio do formulário
             form.addEventListener('submit', (e) => {
                 e.preventDefault();
                 
@@ -182,17 +162,21 @@
                 
                 const novaOrdem = { numero, fornecedor, dataPrevisao };
                 
-                // Salva a nova ordem no LocalStorage
-                const ordens = JSON.parse(localStorage.getItem('ordensDeCompra')) || [];
-                ordens.push(novaOrdem);
-                localStorage.setItem('ordensDeCompra', JSON.stringify(ordens));
-                
-                // Limpa o formulário e recarrega a tabela
-                form.reset();
-                carregarOrdens();
+                fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    body: JSON.stringify(novaOrdem)
+                })
+                .then(response => {
+                    alert('Ordem salva com sucesso!');
+                    form.reset();
+                    carregarOrdens();
+                })
+                .catch(error => {
+                    console.error('Erro ao salvar a ordem:', error);
+                    alert('Ocorreu um erro ao salvar a ordem.');
+                });
             });
 
-            // Chama a função para carregar as ordens quando a página é carregada
             carregarOrdens();
         });
     </script>
