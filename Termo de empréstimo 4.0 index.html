@@ -96,9 +96,9 @@
             display: flex;
             gap: 10px;
             margin-top: 20px;
+            justify-content: flex-end;
         }
         .button-group button {
-            flex: 1;
             padding: 15px;
             border: none;
             border-radius: 4px;
@@ -113,58 +113,16 @@
         #submit-button:hover {
             background-color: #2563eb;
         }
-
-        .records-section {
-            margin-top: 40px;
-        }
-        .records-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-        #search-input {
-            padding: 10px;
-            font-size: 1em;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            width: 300px;
-            box-sizing: border-box;
-        }
-        #clear-records-button {
-            background-color: #ef4444;
+        #report-button {
+            background-color: #60a5fa;
             color: white;
-            padding: 10px 15px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
         }
-        #records-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
+        #report-button:hover {
+            background-color: #3b82f6;
         }
-        #records-table th, #records-table td {
-            border: 1px solid #ddd;
-            padding: 10px;
-            text-align: left;
+        .records-section {
+            display: none;
         }
-        #records-table th {
-            background-color: #e2e8f0;
-        }
-        .status-nao-devolvido {
-            color: #ef4444;
-            font-weight: bold;
-        }
-        .status-atrasado {
-            color: #ef4444;
-            font-weight: bold;
-        }
-        .status-devolvido {
-            color: #10b981;
-            font-weight: bold;
-        }
-        
         .print-area {
             display: none;
             margin-top: 30px;
@@ -218,23 +176,12 @@
         .print-signatures p {
             margin-bottom: 20px;
         }
-        .print-button {
-            padding: 8px 12px;
-            background-color: #3b82f6;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        .print-return-button {
-            background-color: #10b981;
-        }
         @media print {
             body {
                 background-color: #fff;
                 padding: 0;
             }
-            .container, #submit-button, #add-material-button, .remove-material-button, .records-section {
+            .container, .modal {
                 display: none;
             }
             .print-area {
@@ -248,6 +195,72 @@
                 page-break-after: always;
                 border: none;
             }
+        }
+        
+        /* Modal para o relatório */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+            padding-top: 60px;
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            position: relative;
+        }
+        .close-button {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .close-button:hover,
+        .close-button:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .report-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        .report-table th, .report-table td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+            word-wrap: break-word;
+        }
+        .report-table th {
+            background-color: #e2e8f0;
+        }
+        .report-table tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        .status-button {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 4px;
+            color: white;
+            cursor: pointer;
+        }
+        .status-emprestado {
+            background-color: #ef4444;
+        }
+        .status-devolvido {
+            background-color: #10b981;
         }
     </style>
 </head>
@@ -272,7 +285,8 @@
             <h2>Dados da Instituição Recebedora</h2>
             <div class="input-group">
                 <label for="instituicao-recebedora">Instituição:</label>
-                <input type="text" id="instituicao-recebedora" name="instituicao-recebedora" required>
+                <input list="instituicoes" id="instituicao-recebedora" name="instituicao-recebedora" required>
+                <datalist id="instituicoes"></datalist>
             </div>
             <div class="input-group">
                 <label for="cnpj">CNPJ:</label>
@@ -307,12 +321,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr>
-                        <td><input type="text" name="material" style="width: 100%; box-sizing: border-box;" required></td>
-                        <td><input type="text" name="quantidade" style="width: 100%; box-sizing: border-box;" required></td>
-                        <td><button type="button" class="remove-material-button">Remover</button></td>
-                    </tr>
-                </tbody>
+                    </tbody>
             </table>
             <button type="button" id="add-material-button">Adicionar Material</button>
         </div>
@@ -333,320 +342,330 @@
             </div>
         </div>
 
-        <button type="submit" id="submit-button">Salvar e Gerar Termo</button>
-    </form>
-
-    <div class="records-section">
-        <div class="records-header">
-            <h2>Registros de Empréstimos</h2>
-            <button id="clear-records-button">Reiniciar Registros</button>
+        <div class="button-group">
+            <button type="button" id="report-button">Gerar Relatório</button>
+            <button type="submit" id="submit-button">Salvar e Gerar Termo</button>
         </div>
-        <input type="text" id="search-input" placeholder="Buscar por Instituição...">
-        <table id="records-table">
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Instituição</th>
-                    <th>Responsável</th>
-                    <th>Data de Transferência</th>
-                    <th>Previsão Devolução</th>
-                    <th>Status</th>
-                    <th>Devolvido?</th>
-                    <th>Ações</th>
-                </tr>
-            </thead>
-            <tbody>
-            </tbody>
-        </table>
-    </div>
+    </form>
 </div>
 
 <div class="print-area"></div>
 
+<div id="report-modal" class="modal">
+    <div class="modal-content">
+        <span class="close-button">&times;</span>
+        <h2>Relatório de Empréstimos</h2>
+        <div id="report-container">
+            <p>Carregando dados...</p>
+        </div>
+    </div>
+</div>
+
 <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        const form = document.getElementById('loan-form');
-        const materialsList = document.querySelector('#materials-list tbody');
-        const addMaterialBtn = document.getElementById('add-material-button');
-        const recordsTableBody = document.querySelector('#records-table tbody');
-        const searchInput = document.getElementById('search-input');
-        const clearRecordsBtn = document.getElementById('clear-records-button');
-        
-        let allRecords = [];
+    const scriptURL = 'https://script.google.com/macros/s/AKfycbzf-KK-VyCHOTgqLW5TITPW9bcOTO7BVm946W0kSrhYzu9fEh7nFwnlbPUObE5hTrbA/exec'; // **IMPORTANTE: COLOQUE A URL AQUI**
+    const form = document.getElementById('loan-form');
+    const materialsList = document.querySelector('#materials-list tbody');
+    const addMaterialBtn = document.getElementById('add-material-button');
+    const printArea = document.querySelector('.print-area');
+    const reportButton = document.getElementById('report-button');
+    const reportModal = document.getElementById('report-modal');
+    const closeModalBtn = document.querySelector('.close-button');
+    const reportContainer = document.getElementById('report-container');
+    
+    // Elementos da nova funcionalidade de busca de instituições
+    const instituicaoInput = document.getElementById('instituicao-recebedora');
+    const instituicaoDatalist = document.getElementById('instituicoes');
+    let instituicoesData = []; // Armazenará os dados das instituições
 
-        const loadRecords = () => {
-            const storedRecords = localStorage.getItem('loanRecords');
-            if (storedRecords) {
-                allRecords = JSON.parse(storedRecords);
-            }
-            renderRecords(allRecords);
-        };
-
-        const saveRecords = () => {
-            localStorage.setItem('loanRecords', JSON.stringify(allRecords));
-        };
-
-        const renderRecords = (records) => {
-            recordsTableBody.innerHTML = '';
-            records.forEach(record => {
-                const now = new Date();
-                const returnDate = record['previsao-devolucao'] ? new Date(record['previsao-devolucao']) : null;
-                const isOverdue = returnDate && returnDate < now && !record.devolvido;
-                const statusText = record.devolvido ? 'Devolvido' : (isOverdue ? 'Atrasado' : 'Não Devolvido');
-                const statusClass = record.devolvido ? 'status-devolvido' : (isOverdue ? 'status-atrasado' : 'status-nao-devolvido');
-
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${record.id}</td>
-                    <td>${record['instituicao-recebedora']}</td>
-                    <td>${record['responsavel-recebimento']}</td>
-                    <td>${formatDate(record['data-transferencia'])}</td>
-                    <td>${formatDate(record['previsao-devolucao']) || 'N/A'}</td>
-                    <td><span class="${statusClass}">${statusText}</span></td>
-                    <td>
-                        <input type="checkbox" data-id="${record.id}" ${record.devolvido ? 'checked' : ''}>
-                    </td>
-                    <td>
-                        <button class="print-button" onclick="printLoanTerm(${record.id})">Imprimir</button>
-                        ${record.devolvido ? `<button class="print-button print-return-button" onclick="printReturnTerm(${record.id})">Imprimir Termo de Devolução</button>` : ''}
-                    </td>
-                `;
-                recordsTableBody.appendChild(row);
-            });
-
-            recordsTableBody.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
-                checkbox.addEventListener('change', (e) => {
-                    const recordId = parseInt(e.target.dataset.id);
-                    const record = allRecords.find(r => r.id === recordId);
-                    if (record) {
-                        record.devolvido = e.target.checked;
-                        record.data_devolucao = record.devolvido ? new Date().toISOString().slice(0, 10) : null;
-                        saveRecords();
-                        renderRecords(allRecords); 
-                    }
+    // Função para carregar e exibir as instituições no datalist
+    const loadInstituicoes = async () => {
+        try {
+            const response = await fetch(`${scriptURL}?action=getInstituicoes`);
+            instituicoesData = await response.json();
+            if (instituicoesData.status === 'success') {
+                instituicaoDatalist.innerHTML = '';
+                instituicoesData.data.forEach(inst => {
+                    const option = document.createElement('option');
+                    option.value = inst.Instituicao;
+                    instituicaoDatalist.appendChild(option);
                 });
-            });
-        };
+            }
+        } catch (error) {
+            console.error("Erro ao carregar instituições:", error);
+        }
+    };
+    
+    // Preenche os campos do formulário ao selecionar uma instituição na lista
+    instituicaoInput.addEventListener('input', () => {
+        const selectedValue = instituicaoInput.value;
+        const instituicao = instituicoesData.data.find(inst => inst.Instituicao === selectedValue);
+        if (instituicao) {
+            document.getElementById('cnpj').value = instituicao.CNPJ;
+            document.getElementById('endereco').value = instituicao.Endereco;
+            document.getElementById('solicitante').value = instituicao.Solicitante;
+            document.getElementById('cargo-solicitante').value = instituicao.Cargo_Solicitante;
+            document.getElementById('responsavel-recebimento').value = instituicao.Responsavel_Recebimento;
+        } else {
+            // Limpa os campos se o valor não for uma instituição válida
+            document.getElementById('cnpj').value = '';
+            document.getElementById('endereco').value = '';
+            document.getElementById('solicitante').value = '';
+            document.getElementById('cargo-solicitante').value = '';
+            document.getElementById('responsavel-recebimento').value = '';
+        }
+    });
 
-        const addMaterialRow = () => {
-            const newRow = document.createElement('tr');
-            newRow.innerHTML = `
-                <td><input type="text" name="material" style="width: 100%; box-sizing: border-box;" required></td>
-                <td><input type="text" name="quantidade" style="width: 100%; box-sizing: border-box;" required></td>
-                <td><button type="button" class="remove-material-button">Remover</button></td>
-            `;
-            materialsList.appendChild(newRow);
-            newRow.querySelector('.remove-material-button').addEventListener('click', () => {
-                newRow.remove();
-            });
-        };
+    // Chamada inicial para carregar as instituições
+    loadInstituicoes();
 
-        addMaterialBtn.addEventListener('click', addMaterialRow);
+    const addMaterialRow = () => {
+        const newRow = document.createElement('tr');
+        newRow.innerHTML = `
+            <td><input type="text" name="material" style="width: 100%; box-sizing: border-box;" required></td>
+            <td><input type="text" name="quantidade" style="width: 100%; box-sizing: border-box;" required></td>
+            <td><button type="button" class="remove-material-button">Remover</button></td>
+        `;
+        materialsList.appendChild(newRow);
+    };
 
-        materialsList.addEventListener('click', (e) => {
-            if (e.target.classList.contains('remove-material-button')) {
-                e.target.closest('tr').remove();
+    addMaterialRow();
+    addMaterialBtn.addEventListener('click', addMaterialRow);
+    materialsList.addEventListener('click', (e) => {
+        if (e.target.classList.contains('remove-material-button')) {
+            e.target.closest('tr').remove();
+        }
+    });
+
+    const getFormData = () => {
+        const data = {};
+        const inputs = form.querySelectorAll('input, textarea');
+        inputs.forEach(input => {
+            if (input.name) {
+                data[input.name] = input.value;
             }
         });
-
-        const getFormData = () => {
-            const formData = new FormData(form);
-            const data = Object.fromEntries(formData.entries());
-
-            const materials = [];
-            document.querySelectorAll('#materials-list tbody tr').forEach(row => {
-                const material = row.querySelector('input[name="material"]').value;
-                const quantidade = row.querySelector('input[name="quantidade"]').value;
-                if (material && quantidade) {
-                    materials.push({ material, quantidade });
-                }
+        const materials = [];
+        document.querySelectorAll('#materials-list tbody tr').forEach(row => {
+            const materialInput = row.querySelector('input[name="material"]');
+            const quantidadeInput = row.querySelector('input[name="quantidade"]');
+            if (materialInput.value.trim() && quantidadeInput.value.trim()) {
+                materials.push({ material: materialInput.value.trim(), quantidade: quantidadeInput.value.trim() });
+            }
+        });
+        data.materials = JSON.stringify(materials);
+        return data;
+    };
+    
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const materials = getFormData().materials;
+        if (materials === "[]") {
+            alert("Por favor, adicione pelo menos um material.");
+            return;
+        }
+        if (!form.checkValidity()) {
+            alert("Por favor, preencha todos os campos obrigatórios.");
+            return;
+        }
+        const formData = getFormData();
+        try {
+            await fetch(scriptURL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams(formData)
             });
-            data.materials = materials;
-            return data;
-        };
-        
-        const resetFormAndAddInitialRow = () => {
+            alert('Dados salvos na planilha com sucesso!');
+            generateLoanTerm(formData);
             form.reset();
             materialsList.innerHTML = '';
             addMaterialRow();
-        };
+        } catch (error) {
+            console.error('Erro ao enviar dados para o Google Apps Script:', error);
+            alert('Ocorreu um erro ao salvar os dados. Verifique o console para mais detalhes.');
+        }
+    });
 
-        form.addEventListener('submit', (e) => {
-            e.preventDefault();
-            
-            if (materialsList.rows.length === 0) {
-                alert("Por favor, adicione pelo menos um material.");
-                return;
-            }
+    const formatDate = (dateString) => {
+        if (!dateString) return '';
+        const date = new Date(dateString);
+        return date.toLocaleDateString('pt-BR');
+    };
 
-            if (!form.checkValidity()) {
-                alert("Por favor, preencha todos os campos obrigatórios.");
-                return;
-            }
-
-            const data = getFormData();
-            
-            const newRecord = {
-                id: allRecords.length > 0 ? Math.max(...allRecords.map(r => r.id)) + 1 : 1,
-                ...data,
-                devolvido: false,
-                data_devolucao: null
-            };
-            
-            allRecords.push(newRecord);
-            saveRecords();
-            renderRecords(allRecords);
-
-            resetFormAndAddInitialRow();
-            
-            generateLoanTerm(newRecord);
+    const formatMaterialsList = (materialsJSON) => {
+        const materials = JSON.parse(materialsJSON);
+        if (materials.length === 0) return '';
+        let listHTML = '<ul class="print-list">';
+        materials.forEach(item => {
+            listHTML += `<li>${item.material}: ${item.quantidade}</li>`;
         });
+        listHTML += '</ul>';
+        return listHTML;
+    };
 
-        searchInput.addEventListener('input', (e) => {
-            const searchTerm = e.target.value.toLowerCase();
-            const filteredRecords = allRecords.filter(record => 
-                record['instituicao-recebedora'].toLowerCase().includes(searchTerm)
-            );
-            renderRecords(filteredRecords);
-        });
+    const generateLoanTerm = (data) => {
+        printArea.innerHTML = '';
+        const documentContent = `
+            <div class="print-header">
+                <h2>TERMO DE TRANSFERÊNCIA POR EMPRÉSTIMO DE MATERIAIS</h2>
+                <h3>INSTITUTO DE DESENVOLVIMENTO, ENSINO E ASSISTÊNCIA À SAÚDE – IDEAS</h3>
+            </div>
+            <div class="print-section">
+                <p><strong>Responsável pelo Empréstimo:</strong> ${data['responsavel-emprestimo']} &nbsp;&nbsp;&nbsp;&nbsp; <strong>Cargo/Função:</strong> ${data['cargo-emprestimo']}</p>
+            </div>
+            <div class="print-section">
+                <h4>DADOS DA INSTITUIÇÃO RECEBEDORA</h4>
+                <p><strong>Instituição:</strong> ${data['instituicao-recebedora']} &nbsp;&nbsp;&nbsp;&nbsp; <strong>CNPJ:</strong> ${data.cnpj} &nbsp;&nbsp;&nbsp;&nbsp; <strong>Endereço:</strong> ${data.endereco}</p>
+                <p><strong>Solicitante:</strong> ${data.solicitante} &nbsp;&nbsp;&nbsp;&nbsp; <strong>Cargo/Função:</strong> ${data['cargo-solicitante']}</p>
+                <p><strong>Responsável pelo Recebimento:</strong> ${data['responsavel-recebimento']}</p>
+            </div>
+            <div class="print-section">
+                <h4>DESCRIÇÃO DOS MATERIAIS/ITENS EMPRESTADOS</h4>
+                ${formatMaterialsList(data.materials)}
+            </div>
+            <div class="print-section">
+                <h4>PRAZO DO EMPRÉSTIMO</h4>
+                <p><strong>Data da Transferência:</strong> ${formatDate(data['data-transferencia'])}</p>
+                <p><strong>Previsão de Devolução:</strong> ${formatDate(data['previsao-devolucao']) || 'Não definido'}</p>
+            </div>
+            <div class="print-section">
+                <h4>TERMO DE RESPONSABILIDADE</h4>
+                <p style="text-align: justify;">A instituição recebedora declara estar ciente de que os materiais emprestados são de propriedade do IDEAS e se compromete a devolvê-los nas mesmas condições em que foram recebidos, no prazo estipulado. Em caso de perda, extravio ou danos, será responsável pela reposição ou ressarcimento conforme avaliação do IDEAS.</p>
+            </div>
+            <div class="print-signatures">
+                <h4>ASSINATURAS</h4>
+                <p><strong>Responsável pelo IDEAS:</strong> ${data['responsavel-emprestimo']}</p>
+                <div class="signature-line"></div>
+                <p><strong>Responsável pelo Recebimento:</strong> ${data['responsavel-recebimento']}</p>
+                <div class="signature-line"></div>
+                <p><strong>Data:</strong> ${formatDate(data['data-assinatura'])}</p>
+            </div>
+        `;
+        const via1 = document.createElement('div');
+        via1.classList.add('print-via');
+        via1.innerHTML = `<h3>VIA 1: IDEAS</h3>${documentContent}`;
+        printArea.appendChild(via1);
+
+        const via2 = document.createElement('div');
+        via2.classList.add('print-via');
+        via2.innerHTML = `<h3>VIA 2: ${data['instituicao-recebedora'].toUpperCase()}</h3>${documentContent}`;
+        printArea.appendChild(via2);
+
+        window.print();
+    };
+
+    reportButton.addEventListener('click', async () => {
+        reportModal.style.display = "block";
+        reportContainer.innerHTML = "<p>Carregando dados...</p>";
         
-        clearRecordsBtn.addEventListener('click', () => {
-            if (confirm('Tem certeza que deseja apagar todos os registros de empréstimos? Esta ação é irreversível.')) {
-                localStorage.removeItem('loanRecords');
-                allRecords = [];
-                renderRecords([]);
+        try {
+            const response = await fetch(`${scriptURL}?action=getEmprestimos`);
+            const result = await response.json();
+
+            if (result.status === "success") {
+                renderReport(result.data);
+            } else {
+                reportContainer.innerHTML = `<p>${result.message}</p>`;
             }
+        } catch (error) {
+            console.error('Erro ao buscar o relatório:', error);
+            reportContainer.innerHTML = "<p>Erro ao carregar o relatório. Verifique sua conexão ou o Google Apps Script.</p>";
+        }
+    });
+
+    const renderReport = (emprestimos) => {
+        if (emprestimos.length === 0) {
+            reportContainer.innerHTML = "<p>Nenhum empréstimo encontrado.</p>";
+            return;
+        }
+
+        let tableHTML = `
+            <table class="report-table">
+                <thead>
+                    <tr>
+                        <th>Instituição</th>
+                        <th>Data do Empréstimo</th>
+                        <th>Previsão Devolução</th>
+                        <th>Itens</th>
+                        <th>Status</th>
+                        <th>Ação</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        emprestimos.forEach(item => {
+            const materials = JSON.parse(item.materials).map(m => `${m.quantidade}x ${m.material}`).join(', ');
+            const statusClass = item.Status === 'Devolvido' ? 'status-devolvido' : 'status-emprestado';
+            const buttonText = item.Status === 'Devolvido' ? 'Devolvido' : 'Marcar como Devolvido';
+            const buttonDisabled = item.Status === 'Devolvido' ? 'disabled' : '';
+            const dataHora = new Date(item['Data/Hora']);
+
+            tableHTML += `
+                <tr>
+                    <td>${item['instituicao-recebedora']}</td>
+                    <td>${dataHora.toLocaleDateString('pt-BR')}</td>
+                    <td>${item['previsao-devolucao'] ? formatDate(item['previsao-devolucao']) : 'N/A'}</td>
+                    <td>${materials}</td>
+                    <td>${item.Status}</td>
+                    <td>
+                        <button class="status-button ${statusClass}" data-row="${item.row_index}" ${buttonDisabled}>${buttonText}</button>
+                    </td>
+                </tr>
+            `;
         });
-
-        const formatDate = (dateString) => {
-            if (!dateString) return '';
-            const [year, month, day] = dateString.split('-');
-            return `${day}/${month}/${year}`;
-        };
-
-        const formatMaterialsList = (materials) => {
-            if (materials.length === 0) return '';
-            let listHTML = '<ul class="print-list">';
-            materials.forEach(item => {
-                listHTML += `<li>${item.material}: ${item.quantidade}</li>`;
-            });
-            listHTML += '</ul>';
-            return listHTML;
-        };
-
-        const generateLoanTerm = (data) => {
-            const printArea = document.querySelector('.print-area');
-            printArea.innerHTML = '';
-            const documentContent = `
-                <div class="print-header">
-                    <h2>TERMO DE TRANSFERÊNCIA POR EMPRÉSTIMO DE MATERIAIS</h2>
-                    <h3>INSTITUTO DE DESENVOLVIMENTO, ENSINO E ASSISTÊNCIA À SAÚDE – IDEAS</h3>
-                </div>
-                <div class="print-section">
-                    <p><strong>Responsável pelo Empréstimo:</strong> ${data['responsavel-emprestimo']} &nbsp;&nbsp;&nbsp;&nbsp; <strong>Cargo/Função:</strong> ${data['cargo-emprestimo']}</p>
-                </div>
-                <div class="print-section">
-                    <h4>DADOS DA INSTITUIÇÃO RECEBEDORA</h4>
-                    <p><strong>Instituição:</strong> ${data['instituicao-recebedora']} &nbsp;&nbsp;&nbsp;&nbsp; <strong>CNPJ:</strong> ${data.cnpj} &nbsp;&nbsp;&nbsp;&nbsp; <strong>Endereço:</strong> ${data.endereco}</p>
-                    <p><strong>Solicitante:</strong> ${data.solicitante} &nbsp;&nbsp;&nbsp;&nbsp; <strong>Cargo/Função:</strong> ${data['cargo-solicitante']}</p>
-                    <p><strong>Responsável pelo Recebimento:</strong> ${data['responsavel-recebimento']}</p>
-                </div>
-                <div class="print-section">
-                    <h4>DESCRIÇÃO DOS MATERIAIS/ITENS EMPRESTADOS</h4>
-                    ${formatMaterialsList(data.materials)}
-                </div>
-                <div class="print-section">
-                    <h4>PRAZO DO EMPRÉSTIMO</h4>
-                    <p><strong>Data da Transferência:</strong> ${formatDate(data['data-transferencia'])}</p>
-                    <p><strong>Previsão de Devolução:</strong> ${formatDate(data['previsao-devolucao']) || 'Não definido'}</p>
-                </div>
-                <div class="print-section">
-                    <h4>TERMO DE RESPONSABILIDADE</h4>
-                    <p style="text-align: justify;">A instituição recebedora declara estar ciente de que os materiais emprestados são de propriedade do IDEAS e se compromete a devolvê-los nas mesmas condições em que foram recebidos, no prazo estipulado. Em caso de perda, extravio ou danos, será responsável pela reposição ou ressarcimento conforme avaliação do IDEAS.</p>
-                </div>
-                <div class="print-signatures">
-                    <h4>ASSINATURAS</h4>
-                    <p><strong>Responsável pelo IDEAS:</strong> ${data['responsavel-emprestimo']}</p>
-                    <div class="signature-line"></div>
-                    <p><strong>Responsável pelo Recebimento:</strong> ${data['responsavel-recebimento']}</p>
-                    <div class="signature-line"></div>
-                    <p><strong>Data:</strong> ${formatDate(data['data-assinatura'])}</p>
-                </div>
-            `;
-            const via1 = document.createElement('div');
-            via1.classList.add('print-via');
-            via1.innerHTML = `<h3>VIA 1: IDEAS</h3>${documentContent}`;
-            printArea.appendChild(via1);
-
-            const via2 = document.createElement('div');
-            via2.classList.add('print-via');
-            via2.innerHTML = `<h3>VIA 2: ${data['instituicao-recebedora'].toUpperCase()}</h3>${documentContent}`;
-            printArea.appendChild(via2);
-
-            window.print();
-        };
-
-        const generateReturnTerm = (data) => {
-            const printArea = document.querySelector('.print-area');
-            printArea.innerHTML = '';
-            const documentContent = `
-                <div class="print-header">
-                    <h2>TERMO DE RECEBIMENTO DE DEVOLUÇÃO DE MATERIAIS</h2>
-                    <h3>INSTITUTO DE DESENVOLVIMENTO, ENSINO E ASSISTÊNCIA À SAÚDE – IDEAS</h3>
-                </div>
-                <div class="print-section">
-                    <p>Este termo confirma que os materiais listados abaixo, emprestados para a instituição **${data['instituicao-recebedora']}** em **${formatDate(data['data-transferencia'])}**, foram devolvidos ao IDEAS.</p>
-                </div>
-                <div class="print-section">
-                    <h4>MATERIAIS DEVOLVIDOS</h4>
-                    ${formatMaterialsList(data.materials)}
-                </div>
-                <div class="print-section">
-                    <p><strong>Devolução realizada em:</strong> ${formatDate(data.data_devolucao)}</p>
-                </div>
-                <div class="print-section">
-                    <h4>TERMO DE RESPONSABILIDADE DE RECEBIMENTO</h4>
-                    <p style="text-align: justify;">O IDEAS atesta que recebeu os materiais acima listados e confirma que os mesmos foram devolvidos em condições satisfatórias, encerrando o termo de responsabilidade de empréstimo.</p>
-                </div>
-                <div class="print-signatures">
-                    <h4>ASSINATURAS</h4>
-                    <p><strong>Responsável pelo IDEAS (Recebimento):</strong> ${data['responsavel-emprestimo']}</p>
-                    <div class="signature-line"></div>
-                    <p><strong>Responsável pela Devolução (Instituição Recebedora):</strong> ${data['responsavel-recebimento']}</p>
-                    <div class="signature-line"></div>
-                    <p><strong>Data:</strong> ${formatDate(data.data_devolucao)}</p>
-                </div>
-            `;
-            const via1 = document.createElement('div');
-            via1.classList.add('print-via');
-            via1.innerHTML = `<h3>VIA 1: IDEAS</h3>${documentContent}`;
-            printArea.appendChild(via1);
-
-            const via2 = document.createElement('div');
-            via2.classList.add('print-via');
-            via2.innerHTML = `<h3>VIA 2: ${data['instituicao-recebedora'].toUpperCase()}</h3>${documentContent}`;
-            printArea.appendChild(via2);
+        tableHTML += "</tbody></table>";
+        reportContainer.innerHTML = tableHTML;
+    };
+    
+    reportContainer.addEventListener('click', async (e) => {
+        if (e.target.classList.contains('status-button')) {
+            const button = e.target;
+            const rowIndex = button.dataset.row;
             
-            window.print();
-        };
+            if (confirm("Tem certeza que deseja marcar este item como 'Devolvido'?")) {
+                button.textContent = "Atualizando...";
+                button.disabled = true;
 
-        window.printLoanTerm = (id) => {
-            const recordToPrint = allRecords.find(r => r.id === id);
-            if (recordToPrint) {
-                generateLoanTerm(recordToPrint);
+                try {
+                    // AQUI está a mudança crucial: usamos o método POST
+                    await fetch(scriptURL, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: new URLSearchParams({
+                            action: 'updateStatus', // Parâmetro para o Apps Script saber o que fazer
+                            row_index: rowIndex,
+                            status: 'Devolvido'
+                        })
+                    });
+                    
+                    button.textContent = "Devolvido";
+                    button.classList.remove('status-emprestado');
+                    button.classList.add('status-devolvido');
+                    alert('Status atualizado com sucesso!');
+                    
+                } catch (error) {
+                    console.error('Erro ao atualizar status:', error);
+                    alert('Ocorreu um erro ao atualizar o status.');
+                    button.textContent = "Marcar como Devolvido";
+                    button.disabled = false;
+                }
             }
-        };
+        }
+    });
 
-        window.printReturnTerm = (id) => {
-            const recordToPrint = allRecords.find(r => r.id === id);
-            if (recordToPrint) {
-                generateReturnTerm(recordToPrint);
-            }
-        };
-        
-        loadRecords();
-        if (materialsList.rows.length === 0) {
-            addMaterialRow();
+    closeModalBtn.addEventListener('click', () => {
+        reportModal.style.display = "none";
+    });
+
+    window.addEventListener('click', (event) => {
+        if (event.target == reportModal) {
+            reportModal.style.display = "none";
         }
     });
 </script>
