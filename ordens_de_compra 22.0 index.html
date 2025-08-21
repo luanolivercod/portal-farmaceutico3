@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controle de Ordens de Compra</title>
+    
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+        }
+
+        header {
+            background-color: #333;
+            color: #fff;
+            padding: 1rem;
+            text-align: center;
+        }
+
+        main {
+            max-width: 800px;
+            margin: 20px auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .form-container, .relatorio-container {
+            margin-bottom: 2rem;
+        }
+        
+        .relatorio-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            align-items: flex-end;
+            padding: 1rem;
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+            flex: 1;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: bold;
+        }
+
+        input[type="text"], input[type="date"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        button {
+            background-color: #5cb85c;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #4cae4c;
+        }
+
+        .btn-update {
+            background-color: #0275d8;
+        }
+
+        .btn-update:hover {
+            background-color: #025aa5;
+        }
+        
+        .btn-print {
+            background-color: #6c757d;
+        }
+        .btn-print:hover {
+            background-color: #5a6268;
+        }
+        
+        /* Novos estilos para os botões de ação */
+        .btn-received {
+            background-color: #28a745;
+            padding: 5px 10px;
+            font-size: 14px;
+            margin-right: 5px;
+        }
+        
+        .btn-received:hover {
+            background-color: #218838;
+        }
+        
+        .btn-error {
+            background-color: #dc3545;
+            padding: 5px 10px;
+            font-size: 14px;
+        }
+        
+        .btn-error:hover {
+            background-color: #c82333;
+        }
+        
+        /* Estilo do Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+            padding-top: 20px;
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 0 auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 90%;
+            max-width: 1000px;
+            border-radius: 8px;
+            position: relative;
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        
+        .status-completo {
+            color: green;
+            font-weight: bold;
+        }
+
+        .status-parcial {
+            color: orange;
+            font-weight: bold;
+        }
+
+        .atrasado {
+            font-weight: bold;
+            color: red;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Controle de Ordens de Compra</h1>
+    </header>
+
+    <main>
+        <section class="form-container">
+            <h2>Cadastrar Nova Ordem</h2>
+            <form id="formOrdemCompra">
+                <div class="form-group">
+                    <label for="numero">Número da Ordem:</label>
+                    <input type="text" id="numero" required>
+                </div>
+                <div class="form-group">
+                    <label for="fornecedor">Fornecedor:</label>
+                    <input type="text" id="fornecedor" required>
+                </div>
+                <div class="form-group">
+                    <label for="dataPrevisao">Data de Previsão:</label>
+                    <input type="date" id="dataPrevisao" required>
+                </div>
+                <button type="submit">Cadastrar Ordem</button>
+            </form>
+        </section>
+
+        <hr>
+
+        <section class="form-container">
+            <h2>Relatórios</h2>
+            <button id="btnAbrirModal" class="btn-update">Visualizar Relatório</button>
+        </section>
+    </main>
+
+    <div id="reportModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Relatório de Ordens de Compra</h2>
+            <div class="relatorio-container">
+                <div class="form-group">
+                    <label for="modalDataInicio">Data de Início:</label>
+                    <input type="date" id="modalDataInicio">
+                </div>
+                <div class="form-group">
+                    <label for="modalDataFim">Data de Fim:</label>
+                    <input type="date" id="modalDataFim">
+                </div>
+                <button id="btnFiltrarRelatorio" class="btn-update">Filtrar</button>
+                <button id="btnImprimirRelatorio" class="btn-print">Imprimir Relatório</button>
+            </div>
+            
+            <table id="tabelaRelatorio">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Número da Ordem</th>
+                        <th>Fornecedor</th>
+                        <th>Data de Previsão</th>
+                        <th>Status</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="lista-relatorio">
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const formCadastro = document.getElementById('formOrdemCompra');
+            const btnAbrirModal = document.getElementById('btnAbrirModal');
+            const modal = document.getElementById('reportModal');
+            const spanClose = document.getElementsByClassName('close')[0];
+            const listaRelatorio = document.getElementById('lista-relatorio');
+            const modalDataInicio = document.getElementById('modalDataInicio');
+            const modalDataFim = document.getElementById('modalDataFim');
+            const btnFiltrarRelatorio = document.getElementById('btnFiltrarRelatorio');
+            const btnImprimirRelatorio = document.getElementById('btnImprimirRelatorio');
+
+            // ⚠️ IMPORTANTE: Cole a URL de implantação do seu Google Apps Script aqui
+            const URL_WEB_APP = 'https://script.google.com/macros/s/AKfycbzlipXze0TztgXV-8MGx0XYaUynza2-w8i-WXilK2snpuSQL3tqPP9dul59dg8XRj17/exec';
+
+            // Função para exibir as ordens na tabela do modal
+            function exibirRelatorioNaTabela(ordens) {
+                listaRelatorio.innerHTML = '';
+                if (ordens.length === 0) {
+                    listaRelatorio.innerHTML = '<tr><td colspan="6">Nenhuma ordem encontrada.</td></tr>';
+                    return;
+                }
+
+                ordens.forEach((ordem) => {
+                    const dataPrevisao = new Date(ordem.dataprevisao);
+                    const dataAtual = new Date();
+                    
+                    const diffMilissegundos = dataAtual.getTime() - dataPrevisao.getTime();
+                    const diasDeAtraso = Math.floor(diffMilissegundos / (1000 * 60 * 60 * 24));
+                    
+                    const novoItem = document.createElement('tr');
+                    let statusDisplay = '';
+
+                    if (ordem.status === 'completo') {
+                        statusDisplay = `<span class="status-completo">Completo</span>`;
+                    } else if (ordem.status === 'parcial') {
+                        statusDisplay = `<span class="status-parcial">Parcial (Com Erro)</span>`;
+                    } else if (diasDeAtraso > 0) {
+                        statusDisplay = `<span class="atrasado">${diasDeAtraso} dias de atraso</span>`;
+                    } else {
+                        statusDisplay = 'No prazo';
+                    }
+
+                    const dataFormatada = new Date(ordem.dataprevisao).toLocaleDateString('pt-BR');
+
+                    novoItem.innerHTML = `
+                        <td>${ordem.id}</td>
+                        <td>${ordem.numero}</td>
+                        <td>${ordem.fornecedor}</td>
+                        <td>${dataFormatada}</td>
+                        <td>${statusDisplay}</td>
+                        <td>
+                            <button class="btn-received" onclick="atualizarStatus(${ordem.id}, 'completo')">✅ Recebido</button>
+                            <button class="btn-error" onclick="atualizarStatus(${ordem.id}, 'parcial')">❌ Recebido com Erro</button>
+                        </td>
+                    `;
+                    
+                    listaRelatorio.appendChild(novoItem);
+                });
+            }
+
+            // Função para atualizar o status da ordem de compra
+            window.atualizarStatus = async (id, status) => {
+                const formData = new FormData();
+                formData.append('action', 'updateStatus');
+                formData.append('id', id);
+                formData.append('status', status);
+
+                try {
+                    const response = await fetch(URL_WEB_APP, {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const result = await response.text();
+                    alert(result);
+                    // Recarrega a tabela após a atualização
+                    carregarEFiltrarRelatorio();
+                } catch (error) {
+                    console.error('Erro ao atualizar status:', error);
+                    alert('Erro ao atualizar o status da ordem.');
+                }
+            };
+
+            // Função para carregar e filtrar as ordens
+            async function carregarEFiltrarRelatorio() {
+                listaRelatorio.innerHTML = '<tr><td colspan="6" class="loading-message">Carregando relatório...</td></tr>';
+                const dataInicio = modalDataInicio.value;
+                const dataFim = modalDataFim.value;
+                
+                let url = `${URL_WEB_APP}?action=getOrdens`;
+                if (dataInicio && dataFim) {
+                    url += `&dataInicio=${dataInicio}&dataFim=${dataFim}`;
+                }
+
+                try {
+                    const response = await fetch(url);
+                    const ordens = await response.json();
+                    exibirRelatorioNaTabela(ordens);
+                } catch (error) {
+                    console.error('Erro ao buscar ordens:', error);
+                    listaRelatorio.innerHTML = '<tr><td colspan="6" class="loading-message">Erro ao carregar o relatório.</td></tr>';
+                }
+            }
+            
+            formCadastro.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const numero = document.getElementById('numero').value;
+                const fornecedor = document.getElementById('fornecedor').value;
+                const dataPrevisao = document.getElementById('dataPrevisao').value;
+                
+                const formData = new FormData();
+                formData.append('action', 'create');
+                formData.append('numero', numero);
+                formData.append('fornecedor', fornecedor);
+                formData.append('dataPrevisao', dataPrevisao);
+
+                try {
+                    const response = await fetch(URL_WEB_APP, {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const result = await response.text();
+                    alert(result);
+                    formCadastro.reset();
+                } catch (error) {
+                    console.error('Erro ao cadastrar ordem:', error);
+                    alert('Erro ao cadastrar a ordem.');
+                }
+            });
+
+            // Lógica do Modal
+            btnAbrirModal.addEventListener('click', () => {
+                modal.style.display = 'block';
+                // Carrega o relatório completo ao abrir o modal
+                carregarEFiltrarRelatorio();
+            });
+
+            spanClose.addEventListener('click', () => {
+                modal.style.display = 'none';
+            });
+
+            window.addEventListener('click', (event) => {
+                if (event.target == modal) {
+                    modal.style.display = 'none';
+                }
+            });
+
+            // Lógica do Relatório dentro do Modal
+            btnFiltrarRelatorio.addEventListener('click', carregarEFiltrarRelatorio);
+            
+            btnImprimirRelatorio.addEventListener('click', () => {
+                window.print();
+            });
+        });
+    </script>
+</body>
+</html>
