@@ -11,6 +11,9 @@
             background-color: #f0f4f8;
             margin: 0;
             padding-top: 136px;
+            height: 100vh; /* Define a altura total da tela */
+            display: flex; /* Adiciona flexbox para facilitar o layout */
+            flex-direction: column;
         }
 
         .main-header {
@@ -77,14 +80,15 @@
         
         .app-container {
             width: 100%;
-            height: calc(100vh - 136px);
+            height: calc(100vh - 136px); /* Altura dinâmica para preencher o restante da tela */
             border: none;
             background-color: #fff;
             padding: 1rem;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             margin-top: 1rem;
+            flex-grow: 1; /* Permite que o iframe cresça e ocupe o espaço restante */
         }
-
+        
         #login-form-container {
             position: absolute;
             top: 50%;
